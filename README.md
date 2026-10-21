@@ -130,7 +130,7 @@ NOVA VAULT is architected from the ground up on zero-knowledge cryptographic pri
 ## 4. Repository Structure
 
 ```
-nova-vault/
+Passwordmanager/
 ├── .github/
 │   └── workflows/
 │       ├── deploy-website.yml          # GitHub Pages automated deployment workflow
@@ -212,7 +212,7 @@ The website automatically publishes to GitHub Pages via `.github/workflows/deplo
 2. Under **Build and deployment > Source**, select **GitHub Actions**.
 3. Push changes to the `main` branch or trigger the workflow manually from the **Actions** tab.
 4. Your website will be live at:
-   `https://vinnumaiml.github.io/nova-vault/`
+   `https://vinnumaiml.github.io/Passwordmanager/`
 
 ---
 
@@ -290,7 +290,7 @@ NOVA VAULT follows a predictable, automated release procedure.
 ### 8.2 Direct Stable Download Link
 The website's **Download for Android** button links directly to:
 ```
-https://github.com/vinnumaiml/nova-vault/releases/latest/download/NovaVault.apk
+https://github.com/vinnumaiml/Passwordmanager/releases/latest/download/NovaVault.apk
 ```
 This URL automatically redirects to the `NovaVault.apk` asset from the latest release without requiring website edits for future versions.
 

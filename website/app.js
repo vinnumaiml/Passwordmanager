@@ -10,7 +10,7 @@
 
 const CONFIG = {
     REPO_OWNER: 'vinnumaiml',
-    REPO_NAME: 'nova-vault',
+    REPO_NAME: 'Passwordmanager',
     APK_ASSET_NAME: 'NovaVault.apk',
     FALLBACK_VERSION: 'v1.0.0',
     FALLBACK_SIZE: '~28.9 MB',
