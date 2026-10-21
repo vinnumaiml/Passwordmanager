@@ -1,0 +1,201 @@
+name: Build and Release Nova Vault Android APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'Version tag (e.g. v1.0.0)'
+        required: false
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Publish Release APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Set Release Version Environment
+        id: vars
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ inputs.version_tag }}" ]]; then
+            RELEASE_TAG="${{ inputs.version_tag }}"
+          else
+            RELEASE_TAG="${{ github.ref_name }}"
+          fi
+          # Ensure leading v is present for version tag
+          if [[ ! "$RELEASE_TAG" =~ ^v ]]; then
+            RELEASE_TAG="v$RELEASE_TAG"
+          fi
+          echo "RELEASE_TAG=${RELEASE_TAG}" >> $GITHUB_ENV
+          echo "Determined release tag: ${RELEASE_TAG}"
+
+      - name: Make Gradlew Executable
+        run: chmod +x ./gradlew
+
+      - name: Run Android Unit Tests
+        run: |
+          echo "Running unit test suite (CryptoEngine, PasswordGen, TOTP, RecoveryKey)..."
+          ./gradlew testDebugUnitTest --no-daemon --stacktrace
+
+      - name: Verify Release Signing Secrets
+        id: check-secrets
+        run: |
+          MISSING=0
+          if [ -z "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "::error::Secret ANDROID_KEYSTORE_BASE64 is not configured!"
+            MISSING=1
+          fi
+          if [ -z "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" ]; then
+            echo "::error::Secret ANDROID_KEYSTORE_PASSWORD is not configured!"
+            MISSING=1
+          fi
+          if [ -z "${{ secrets.ANDROID_KEY_ALIAS }}" ]; then
+            echo "::error::Secret ANDROID_KEY_ALIAS is not configured!"
+            MISSING=1
+          fi
+          if [ -z "${{ secrets.ANDROID_KEY_PASSWORD }}" ]; then
+            echo "::error::Secret ANDROID_KEY_PASSWORD is not configured!"
+            MISSING=1
+          fi
+
+          if [ "$MISSING" -eq 1 ]; then
+            echo "=========================================================================="
+            echo "❌ ERROR: Production Android release signing secrets are missing!"
+            echo "=========================================================================="
+            echo "Configure the following repository secrets under Settings > Secrets & Variables > Actions:"
+            echo "  1. ANDROID_KEYSTORE_BASE64"
+            echo "  2. ANDROID_KEYSTORE_PASSWORD"
+            echo "  3. ANDROID_KEY_ALIAS"
+            echo "  4. ANDROID_KEY_PASSWORD"
+            echo ""
+            echo "Per security specifications, Nova Vault will NEVER publish unsigned or debug APKs."
+            echo "=========================================================================="
+            exit 1
+          fi
+          echo "All required signing secrets are present."
+
+      - name: Decode Android Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          KEYSTORE_PATH="$RUNNER_TEMP/nova_vault_release.jks"
+          echo "$KEYSTORE_BASE64" | base64 -d > "$KEYSTORE_PATH"
+          if [ ! -s "$KEYSTORE_PATH" ]; then
+            echo "::error::Decoded keystore file is empty or corrupted!"
+            exit 1
+          fi
+          echo "KEYSTORE_PATH=$KEYSTORE_PATH" >> $GITHUB_ENV
+
+      - name: Build Signed Release APK
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "Compiling signed production release APK..."
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Verify Signed APK Integrity
+        run: |
+          RELEASE_APK="app/build/outputs/apk/release/app-release.apk"
+          if [ ! -f "$RELEASE_APK" ]; then
+            echo "::error::Release APK not found at $RELEASE_APK"
+            exit 1
+          fi
+
+          FILE_SIZE=$(stat -c%s "$RELEASE_APK")
+          if [ "$FILE_SIZE" -lt 1000000 ]; then
+            echo "::error::Release APK is abnormally small ($FILE_SIZE bytes)!"
+            exit 1
+          fi
+          echo "Release APK built successfully: $RELEASE_APK ($FILE_SIZE bytes)"
+
+          # Locate apksigner from Android SDK build tools
+          APKSIGNER=$(find $ANDROID_HOME/build-tools -name apksigner | sort -V | tail -n 1)
+          if [ -n "$APKSIGNER" ] && [ -x "$APKSIGNER" ]; then
+            echo "Verifying APK signature using $APKSIGNER..."
+            $APKSIGNER verify --verbose "$RELEASE_APK"
+            echo "Signature verification passed!"
+          else
+            echo "apksigner tool not found; skipping apksigner check."
+          fi
+
+      - name: Package Release Assets & Compute Checksum
+        run: |
+          mkdir -p release-artifacts
+          RELEASE_APK="app/build/outputs/apk/release/app-release.apk"
+
+          # 1. Stable asset filename required by website direct download
+          cp "$RELEASE_APK" "release-artifacts/NovaVault.apk"
+
+          # 2. Versioned asset filename
+          cp "$RELEASE_APK" "release-artifacts/NovaVault-${{ env.RELEASE_TAG }}.apk"
+
+          # 3. Compute SHA-256 Checksum in standard sha256sum format
+          cd release-artifacts
+          sha256sum NovaVault.apk > NovaVault.apk.sha256
+          cat NovaVault.apk.sha256
+          cd ..
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: Nova Vault ${{ env.RELEASE_TAG }}
+          draft: false
+          prerelease: false
+          files: |
+            release-artifacts/NovaVault.apk
+            release-artifacts/NovaVault-${{ env.RELEASE_TAG }}.apk
+            release-artifacts/NovaVault.apk.sha256
+          body: |
+            ## Nova Vault ${{ env.RELEASE_TAG }} — Official Android Release
+
+            ### 🔐 Cryptographic Integrity & Downloads
+            - **Direct Stable Download:** [`NovaVault.apk`](https://github.com/${{ github.repository }}/releases/latest/download/NovaVault.apk)
+            - **Versioned Download:** `NovaVault-${{ env.RELEASE_TAG }}.apk`
+            - **SHA-256 Checksum:** `NovaVault.apk.sha256`
+
+            #### Verify SHA-256 Before Installing:
+            ```bash
+            # Linux / macOS
+            sha256sum -c NovaVault.apk.sha256
+
+            # Windows PowerShell
+            Get-FileHash NovaVault.apk -Algorithm SHA256
+            ```
+
+            ---
+
+            ### 🚀 Highlights
+            - **Envelope Encryption:** AES-256-GCM + Argon2id (64 MiB, 3 iterations, 4 lanes).
+            - **Hardware Keystore & Biometrics:** Device-specific key wrapping with Class 3 `BiometricPrompt`.
+            - **Android System Autofill:** Native `AutofillService` integration with `AssistStructure` heuristics.
+            - **Built-in RFC 6238 TOTP:** Two-factor authenticator with CameraX QR code scanner and 30-second live wheel.
+            - **CSPRNG Generator:** Password and EFF large-wordlist passphrase generator with entropy scoring.
+            - **Security Center:** Vault audit and Have I Been Pwned (HIBP) k-anonymity breach detection.
+            - **Offline Recovery Kit:** 32-byte offline recovery code for emergency master key restoration.
+
+      - name: Securely Clean Up Keystore
+        if: always()
+        run: |
+          if [ -n "${{ env.KEYSTORE_PATH }}" ] && [ -f "${{ env.KEYSTORE_PATH }}" ]; then
+            echo "Zeroing and deleting temporary keystore..."
+            shred -u "${{ env.KEYSTORE_PATH }}" 2>/dev/null || rm -f "${{ env.KEYSTORE_PATH }}"
+          fi

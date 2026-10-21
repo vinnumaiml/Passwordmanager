@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+    <defs>
+        <linearGradient id="shieldGrad" x1="6" y1="4" x2="42" y2="44" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#8B5CF6"/>
+            <stop offset="50%" stop-color="#6366F1"/>
+            <stop offset="100%" stop-color="#45E5D1"/>
+        </linearGradient>
+        <linearGradient id="glowGrad" x1="12" y1="8" x2="36" y2="40" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.25"/>
+            <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+        </linearGradient>
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+        </filter>
+    </defs>
+    <!-- Background Shield Glow -->
+    <path d="M24 4L7 11V22C7 32.5 14.2 42.1 24 44.5C33.8 42.1 41 32.5 41 22V11L24 4Z" fill="url(#shieldGrad)" opacity="0.2" filter="url(#glow)"/>
+    <!-- Outer Shield Border -->
+    <path d="M24 4L7 11V22C7 32.5 14.2 42.1 24 44.5C33.8 42.1 41 32.5 41 22V11L24 4Z" stroke="url(#shieldGrad)" stroke-width="2.5" stroke-linejoin="round" fill="#11182A"/>
+    <!-- Inner Highlight -->
+    <path d="M24 7L10 13V22C10 30.8 16 38.8 24 41C32 38.8 38 30.8 38 22V13L24 7Z" fill="url(#glowGrad)"/>
+    <!-- Keyhole / Core Lock -->
+    <circle cx="24" cy="20" r="4.5" fill="url(#shieldGrad)"/>
+    <path d="M22 23.5L20.5 31H27.5L26 23.5H22Z" fill="url(#shieldGrad)"/>
+    <circle cx="24" cy="20" r="2" fill="#080B16"/>
+</svg>

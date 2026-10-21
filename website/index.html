@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOVA VAULT — Sovereign Android Password Manager</title>
+    <meta name="description" content="Sovereign, security-first Android password manager with zero-knowledge envelope encryption, Argon2id, hardware Keystore biometrics, and system autofill.">
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Ambient Aurora Canvas Background -->
+    <div class="aurora-bg" aria-hidden="true">
+        <div class="aurora-blob blob-1"></div>
+        <div class="aurora-blob blob-2"></div>
+        <div class="aurora-blob blob-3"></div>
+        <div class="starfield"></div>
+    </div>
+
+    <!-- Navigation Header -->
+    <header class="navbar">
+        <div class="container nav-container">
+            <a href="#" class="brand" aria-label="NOVA VAULT Home">
+                <img src="assets/logo.svg" alt="Nova Vault Logo" class="brand-logo" width="36" height="36">
+                <span class="brand-text">NOVA VAULT</span>
+                <span class="brand-badge">Android</span>
+            </a>
+
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="#features" class="nav-link">Features</a></li>
+                    <li><a href="#architecture" class="nav-link">Security</a></li>
+                    <li><a href="#preview" class="nav-link">App Preview</a></li>
+                    <li><a href="#download" class="nav-link">Download</a></li>
+                    <li><a href="#install" class="nav-link">Install Guide</a></li>
+                    <li><a href="#faq" class="nav-link">FAQ</a></li>
+                </ul>
+            </nav>
+
+            <div class="nav-actions">
+                <a href="#download" class="btn btn-primary btn-sm js-download-btn">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Download APK
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <main>
+        <section class="section hero">
+            <div class="container hero-grid">
+                <div class="hero-content">
+                    <div class="badge">
+                        <span class="badge-pulse"></span>
+                        Zero-Knowledge Native Android Architecture
+                    </div>
+                    <h1 class="hero-title">
+                        Sovereign Security for Your <span>Digital Identity</span>
+                    </h1>
+                    <p class="hero-desc">
+                        NOVA VAULT is a native Android password manager engineered with envelope encryption, Argon2id key derivation, hardware Keystore biometric protection, and zero-knowledge cloud sync.
+                    </p>
+                    <div class="hero-actions">
+                        <a href="https://github.com/vinnumaiml/nova-vault/releases/latest/download/NovaVault.apk" class="btn btn-primary btn-lg js-download-btn">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Download for Android
+                        </a>
+                        <a href="#architecture" class="btn btn-secondary btn-lg">
+                            Explore Security Architecture
+                        </a>
+                    </div>
+                    <div class="hero-trust-bar">
+                        <div class="trust-item">
+                            <svg class="trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                            AES-256-GCM + Argon2id
+                        </div>
+                        <div class="trust-item">
+                            <svg class="trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                            </svg>
+                            Hardware Keystore
+                        </div>
+                        <div class="trust-item">
+                            <svg class="trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 14 14"></polyline>
+                            </svg>
+                            Autofill + RFC 6238 TOTP
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive App Mockup Showcase -->
+                <div class="mockup-wrapper" id="preview">
+                    <div class="phone-mockup">
+                        <div class="phone-notch">
+                            <div class="notch-camera"></div>
+                        </div>
+                        <div class="phone-screen">
+                            <!-- Screen 1: Dashboard -->
+                            <div class="app-screen active" id="screen-home">
+                                <div class="app-topbar">
+                                    <span class="app-title">Nova Vault</span>
+                                    <span class="app-badge-locked">SECURE</span>
+                                </div>
+                                <div class="mock-card">
+                                    <div class="mock-score-ring">
+                                        <div class="score-circle">96</div>
+                                        <div>
+                                            <div style="font-weight:700; font-size:0.875rem;">Security Score: A+</div>
+                                            <div style="font-size:0.75rem; color:var(--text-muted);">0 weak / 0 reused passwords</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="font-size:0.8125rem; font-weight:700; margin: 10px 0 6px; color:var(--text-secondary);">Recent Items</div>
+                                <div class="mock-card" style="padding: 8px 14px;">
+                                    <div class="mock-item-row">
+                                        <div class="item-icon-box">GH</div>
+                                        <div class="item-info">
+                                            <div class="item-name">GitHub</div>
+                                            <div class="item-sub">vinnumaiml@github.com</div>
+                                        </div>
+                                    </div>
+                                    <div class="mock-item-row">
+                                        <div class="item-icon-box" style="color:var(--accent-violet);">PR</div>
+                                        <div class="item-info">
+                                            <div class="item-name">ProtonMail</div>
+                                            <div class="item-sub">security@nova.me</div>
+                                        </div>
+                                    </div>
+                                    <div class="mock-item-row">
+                                        <div class="item-icon-box" style="color:var(--status-warning);">AWS</div>
+                                        <div class="item-info">
+                                            <div class="item-name">AWS Production Key</div>
+                                            <div class="item-sub">API Token • Secret</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Screen 2: Vault Items -->
+                            <div class="app-screen" id="screen-vault">
+                                <div class="app-topbar">
+                                    <span class="app-title">All Vault Items</span>
+                                    <span style="font-size:0.75rem; color:var(--accent-cyan);">24 Items</span>
+                                </div>
+                                <div class="mock-card" style="padding:8px 12px; margin-bottom:8px;">
+                                    <div style="font-size:0.75rem; color:var(--text-muted);">🔍 Search encrypted vault...</div>
+                                </div>
+                                <div class="mock-card" style="padding: 8px 14px;">
+                                    <div class="mock-item-row">
+                                        <div class="item-icon-box">PW</div>
+                                        <div class="item-info">
+                                            <div class="item-name">Personal Bank</div>
+                                            <div class="item-sub">•••••••••••• (Encrypted)</div>
+                                        </div>
+                                    </div>
+                                    <div class="mock-item-row">
+                                        <div class="item-icon-box">ID</div>
+                                        <div class="item-info">
+                                            <div class="item-name">Passport Identity</div>
+                                            <div class="item-sub">Identity • Verified</div>
+                                        </div>
+                                    </div>
+                                    <div class="mock-item-row">
+                                        <div class="item-icon-box">WF</div>
+                                        <div class="item-info">
+                                            <div class="item-name">Home Wi-Fi (WPA3)</div>
+                                            <div class="item-sub">SSID: NovaNet_5G</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Screen 3: Password Generator -->
+                            <div class="app-screen" id="screen-generator">
+                                <div class="app-topbar">
+                                    <span class="app-title">Key Generator</span>
+                                    <span style="font-size:0.75rem; color:var(--status-success);">128-bit Entropy</span>
+                                </div>
+                                <div class="mock-card" style="text-align:center; padding:16px;">
+                                    <div style="font-family:var(--font-mono); font-size:1rem; color:var(--accent-cyan); letter-spacing:1px; margin-bottom:8px; word-break:break-all;">
+                                        k9#Vm$Q7!zL2@xR9
+                                    </div>
+                                    <div style="font-size:0.6875rem; color:var(--status-success);">VERY STRONG • EFF PASSPHRASE</div>
+                                </div>
+                                <div class="mock-card" style="font-size:0.75rem; color:var(--text-secondary); line-height:1.6;">
+                                    <div>Length: 20 characters</div>
+                                    <div>Symbols: A-Z, a-z, 0-9, !@#$%</div>
+                                    <div style="color:var(--accent-cyan); margin-top:4px;">SecureRandom CSPRNG Engine</div>
+                                </div>
+                            </div>
+
+                            <!-- Screen 4: TOTP Authenticator -->
+                            <div class="app-screen" id="screen-totp">
+                                <div class="app-topbar">
+                                    <span class="app-title">Authenticator</span>
+                                    <span style="font-size:0.75rem; color:var(--accent-cyan);">RFC 6238</span>
+                                </div>
+                                <div class="mock-card">
+                                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                                        <div>
+                                            <div style="font-weight:700; font-size:0.875rem;">GitHub (2FA)</div>
+                                            <div style="font-family:var(--font-mono); font-size:1.25rem; color:var(--accent-cyan); font-weight:800; letter-spacing:2px; margin:4px 0;">
+                                                842 190
+                                            </div>
+                                            <div style="font-size:0.6875rem; color:var(--text-muted);">Refreshes in 18s</div>
+                                        </div>
+                                        <div style="width:32px; height:32px; border-radius:50%; border:3px solid var(--accent-cyan); display:flex; align-items:center; justify-content:center; font-size:0.6875rem; font-weight:700;">18</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Mockup Navigation Tabs -->
+                            <div class="mock-bottom-nav">
+                                <span class="mock-nav-item active" data-screen="screen-home">Home</span>
+                                <span class="mock-nav-item" data-screen="screen-vault">Vault</span>
+                                <span class="mock-nav-item" data-screen="screen-generator">Generator</span>
+                                <span class="mock-nav-item" data-screen="screen-totp">TOTP</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="section" id="features">
+            <div class="container">
+                <div class="section-header">
+                    <div class="badge">Engineered for Android</div>
+                    <h2 class="section-title">Built with True Zero-Knowledge Security</h2>
+                    <p class="section-desc">Every security control in Nova Vault is implemented natively on device using established cryptographic standards.</p>
+                </div>
+
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                        </div>
+                        <h3 class="feature-title">Envelope Encryption</h3>
+                        <p class="feature-desc">A random 256-bit Data Encryption Key (DEK) encrypts vault items under AES-256-GCM. The DEK itself is wrapped with an Argon2id-derived Key Encryption Key (KEK).</p>
+                        <div class="feature-tags">
+                            <span class="tag">AES-256-GCM</span>
+                            <span class="tag">Argon2id (64 MiB)</span>
+                            <span class="tag">Unique Nonces</span>
+                        </div>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2a10 10 0 0 0-10 10c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.1-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="feature-title">Hardware Keystore & Biometrics</h3>
+                        <p class="feature-desc">Locally unlocks vault access using hardware-backed Android Keystore keys guarded by Class 3 BiometricPrompt (fingerprint or face). Invalidation occurs if enrollment alters.</p>
+                        <div class="feature-tags">
+                            <span class="tag">AndroidKeyStore</span>
+                            <span class="tag">BiometricPrompt</span>
+                            <span class="tag">CryptoObject</span>
+                        </div>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <polyline points="10 9 9 9 8 9"></polyline>
+                            </svg>
+                        </div>
+                        <h3 class="feature-title">Android Autofill Service</h3>
+                        <p class="feature-desc">Deep OS-level integration through Android's Autofill Framework. Intelligently parses AssistStructure node hierarchies to autofill credentials with zero copy-pasting.</p>
+                        <div class="feature-tags">
+                            <span class="tag">AutofillService</span>
+                            <span class="tag">AssistStructure</span>
+                            <span class="tag">Inline Suggestions</span>
+                        </div>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                        </div>
+                        <h3 class="feature-title">RFC 6238 TOTP Authenticator</h3>
+                        <p class="feature-desc">Built-in two-factor code generator supporting HMAC-SHA1/256/512 and Base32 secrets. Includes live 30-second countdown dials and instant QR code scanning via CameraX.</p>
+                        <div class="feature-tags">
+                            <span class="tag">RFC 6238</span>
+                            <span class="tag">CameraX QR</span>
+                            <span class="tag">Base32</span>
+                        </div>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                            </svg>
+                        </div>
+                        <h3 class="feature-title">Password & Passphrase Generator</h3>
+                        <p class="feature-desc">Generate cryptographically random passwords or EFF large-wordlist passphrases using hardware SecureRandom with real-time Shannon entropy strength rating.</p>
+                        <div class="feature-tags">
+                            <span class="tag">EFF Wordlist</span>
+                            <span class="tag">SecureRandom</span>
+                            <span class="tag">Entropy Meter</span>
+                        </div>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="feature-title">Security Center & HIBP Breach Check</h3>
+                        <p class="feature-desc">Continuous audit for weak, reused, and old credentials, plus k-anonymity Have I Been Pwned check where only the first 5 characters of a SHA-1 hash are queried.</p>
+                        <div class="feature-tags">
+                            <span class="tag">k-Anonymity</span>
+                            <span class="tag">HIBP API</span>
+                            <span class="tag">Health Audit</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Security Architecture Deep Dive -->
+        <section class="section" id="architecture" style="background: rgba(13, 18, 36, 0.4);">
+            <div class="container">
+                <div class="section-header">
+                    <div class="badge">Cryptographic Blueprint</div>
+                    <h2 class="section-title">Zero-Knowledge Envelope Model</h2>
+                    <p class="section-desc">Neither your vault master password nor your unencrypted credentials ever leave your device.</p>
+                </div>
+
+                <div class="arch-card">
+                    <h3 style="font-size:1.25rem; font-weight:700; margin-bottom:12px;">Cryptographic Envelope Flow</h3>
+                    <p style="color:var(--text-secondary); font-size:0.9375rem;">
+                        Nova Vault isolates your master password entirely from server authentication. The server authenticates your account, but can never decrypt your vault data.
+                    </p>
+
+                    <div class="arch-flow">
+                        <div class="flow-step">
+                            <span class="flow-step-num">1</span>
+                            <div class="flow-step-title">Master Password</div>
+                            <div class="flow-step-desc">Entered locally into memory as <code>CharArray</code>. Never saved to disk or network.</div>
+                        </div>
+                        <div class="flow-step">
+                            <span class="flow-step-num">2</span>
+                            <div class="flow-step-title">Argon2id KDF</div>
+                            <div class="flow-step-desc">64 MiB memory, 3 iterations, 4 lanes, 32-byte salt derive 256-bit Key Encryption Key (KEK).</div>
+                        </div>
+                        <div class="flow-step">
+                            <span class="flow-step-num">3</span>
+                            <div class="flow-step-title">DEK Unwrapping</div>
+                            <div class="flow-step-desc">KEK unwraps the random 256-bit Data Encryption Key (DEK) via AES-256-GCM authentication.</div>
+                        </div>
+                        <div class="flow-step">
+                            <span class="flow-step-num">4</span>
+                            <div class="flow-step-title">Item Decryption</div>
+                            <div class="flow-step-desc">DEK decrypts vault items in memory. Buffers zeroed immediately after use.</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:32px; padding:20px; background:var(--surface-dark); border-radius:var(--radius-md); border:1px solid var(--border-subtle); display:flex; align-items:center; gap:16px;">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent-cyan); flex-shrink:0;">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        <div style="font-size:0.875rem; color:var(--text-secondary);">
+                            <strong>Dual-Credential Safeguard:</strong> Resetting your cloud account password does <em>not</em> decrypt or overwrite your vault. If the master password is lost, access can only be restored using your offline 32-byte Recovery Kit.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Download & Release Card -->
+        <section class="section" id="download">
+            <div class="container">
+                <div class="section-header">
+                    <div class="badge">Official Distribution</div>
+                    <h2 class="section-title">Download Nova Vault for Android</h2>
+                    <p class="section-desc">Download the standalone, signed Android release package directly from GitHub.</p>
+                </div>
+
+                <div class="release-card">
+                    <div class="release-grid">
+                        <div>
+                            <div style="font-size:0.8125rem; font-weight:700; color:var(--accent-cyan); text-transform:uppercase; margin-bottom:6px;">Latest Stable Release</div>
+                            <h3 style="font-size:2rem; font-weight:800; margin-bottom:12px;" id="rel-version">v1.0.0</h3>
+                            <p style="color:var(--text-secondary); font-size:0.9375rem; margin-bottom:24px;">
+                                Ready for installation on Android 8.0 through Android 15. Real APK compiled directly from audited Kotlin source code.
+                            </p>
+                            <a href="https://github.com/vinnumaiml/nova-vault/releases/latest/download/NovaVault.apk" class="btn btn-primary btn-lg js-download-btn">
+                                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Download NovaVault.apk
+                            </a>
+                        </div>
+
+                        <div>
+                            <ul class="spec-list">
+                                <li class="spec-item">
+                                    <span class="spec-label">Package Name</span>
+                                    <span class="spec-val">com.novavault</span>
+                                </li>
+                                <li class="spec-item">
+                                    <span class="spec-label">File Size</span>
+                                    <span class="spec-val" id="rel-size">~28.9 MB</span>
+                                </li>
+                                <li class="spec-item">
+                                    <span class="spec-label">Minimum SDK</span>
+                                    <span class="spec-val">Android 8.0 (API 26)</span>
+                                </li>
+                                <li class="spec-item">
+                                    <span class="spec-label">Target SDK</span>
+                                    <span class="spec-val">Android 15 (API 35)</span>
+                                </li>
+                                <li class="spec-item">
+                                    <span class="spec-label">Release Date</span>
+                                    <span class="spec-val" id="rel-date">October 2026</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- SHA-256 Verification -->
+                    <div class="checksum-box">
+                        <div class="checksum-header">
+                            <span>SHA-256 Checksum</span>
+                            <button class="btn-copy js-copy-btn" data-copy-target="rel-sha" title="Copy Checksum">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                Copy Hash
+                            </button>
+                        </div>
+                        <div class="checksum-code">
+                            <span id="rel-sha">e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Installation Instructions -->
+        <section class="section" id="install">
+            <div class="container">
+                <div class="section-header">
+                    <div class="badge">Sideloading Guide</div>
+                    <h2 class="section-title">How to Install on Android</h2>
+                    <p class="section-desc">Installing an APK downloaded directly from your browser takes four simple steps.</p>
+                </div>
+
+                <div class="install-steps">
+                    <div class="step-card">
+                        <div class="step-number">01</div>
+                        <h4 class="step-title">Download APK</h4>
+                        <p class="step-desc">Tap the <strong>Download for Android</strong> button above. If prompted by Chrome/Firefox that <em>"File might be harmful"</em>, tap <strong>Download anyway</strong>.</p>
+                    </div>
+
+                    <div class="step-card">
+                        <div class="step-number">02</div>
+                        <h4 class="step-title">Enable Browser Install</h4>
+                        <p class="step-desc">Open the downloaded <code>NovaVault.apk</code>. When Android asks for permission, tap <strong>Settings</strong> and toggle on <em>"Allow from this source"</em>.</p>
+                    </div>
+
+                    <div class="step-card">
+                        <div class="step-number">03</div>
+                        <h4 class="step-title">Verify Checksum</h4>
+                        <p class="step-desc">Optionally verify integrity before installing using PowerShell or terminal:</p>
+                        <div class="code-block">Get-FileHash NovaVault.apk</div>
+                    </div>
+
+                    <div class="step-card">
+                        <div class="step-number">04</div>
+                        <h4 class="step-title">Launch & Setup</h4>
+                        <p class="step-desc">Open Nova Vault, create your account, configure your Master Password, and save your 32-byte offline Recovery Kit.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Frequently Asked Questions -->
+        <section class="section" id="faq" style="background: rgba(13, 18, 36, 0.4);">
+            <div class="container">
+                <div class="section-header">
+                    <div class="badge">Common Questions</div>
+                    <h2 class="section-title">Frequently Asked Questions</h2>
+                    <p class="section-desc">Everything you need to know about Nova Vault's security model and distribution.</p>
+                </div>
+
+                <div class="faq-list">
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            <span>What does "Zero-Knowledge" mean in Nova Vault?</span>
+                            <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                        <div class="faq-answer">
+                            It means that your master password, your encryption keys, and your unencrypted data are never sent to our servers, logged, or visible to anyone but you. All encryption and decryption take place strictly on your Android device using AES-256-GCM.
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            <span>What happens if I forget my master password?</span>
+                            <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                        <div class="faq-answer">
+                            Because Nova Vault is strictly zero-knowledge, we cannot reset your master password or recover your data for you. However, during initial vault setup, you are given a 32-byte offline Recovery Kit. You can use this key to unlock and re-wrap your vault data encryption key.
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            <span>Does an account password reset replace my master password?</span>
+                            <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                        <div class="faq-answer">
+                            No. Nova Vault uses a dual-credential architecture. Your Supabase account password is used solely for server-side user authentication. Your vault master password is used solely for local envelope key derivation. Resetting the account password never decrypts an existing vault.
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            <span>Why does Android display a warning when downloading the APK?</span>
+                            <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                        <div class="faq-answer">
+                            Android shows a standard warning for any application downloaded outside of the Google Play Store (sideloading). This is normal OS security behavior. You can verify the APK's cryptographic SHA-256 checksum against the hash published on our GitHub Release page before installing.
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            <span>How do I enable Nova Vault as my system autofill provider?</span>
+                            <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                        <div class="faq-answer">
+                            Go to your Android device's <strong>Settings &gt; Passwords &amp; Accounts &gt; Autofill service</strong> (or search for "Autofill" in Settings), and select <strong>Nova Vault</strong>. Once enabled, Nova Vault will suggest credentials directly inside apps and web browsers.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Privacy Policy -->
+        <section class="section" id="privacy">
+            <div class="container">
+                <div class="section-header">
+                    <div class="badge">Privacy Commitment</div>
+                    <h2 class="section-title">Privacy Policy & Guarantees</h2>
+                    <p class="section-desc">Our business model is security, not advertising or data harvesting.</p>
+                </div>
+
+                <div class="policy-card">
+                    <ul class="policy-list">
+                        <li class="policy-item">
+                            <svg class="policy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <div class="policy-text">
+                                <h4>No Advertising or Analytics Trackers</h4>
+                                <p>Nova Vault contains zero commercial tracking SDKs, no behavioral telemetry, and no ad libraries. We do not profile your usage.</p>
+                            </div>
+                        </li>
+                        <li class="policy-item">
+                            <svg class="policy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <div class="policy-text">
+                                <h4>Zero-Knowledge Cloud Payloads</h4>
+                                <p>All data synchronized with Supabase is encrypted with authenticated AES-256-GCM before it leaves your device. Even database administrators cannot view your passwords or notes.</p>
+                            </div>
+                        </li>
+                        <li class="policy-item">
+                            <svg class="policy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <div class="policy-text">
+                                <h4>Open & Verifiable Codebase</h4>
+                                <p>All cryptographic implementations, Room database schemas, and Autofill service components are open for inspection on GitHub.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="#" class="brand">
+                        <img src="assets/logo.svg" alt="Nova Vault" class="brand-logo" width="30" height="30">
+                        <span class="brand-text">NOVA VAULT</span>
+                    </a>
+                    <p>
+                        High-assurance, zero-knowledge Android password manager built for privacy sovereignty.
+                    </p>
+                </div>
+
+                <div class="footer-col">
+                    <h5>Product</h5>
+                    <ul class="footer-links">
+                        <li><a href="#features" class="footer-link">Features</a></li>
+                        <li><a href="#architecture" class="footer-link">Security Architecture</a></li>
+                        <li><a href="#download" class="footer-link">Download APK</a></li>
+                        <li><a href="#install" class="footer-link">Install Guide</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-col">
+                    <h5>Resources</h5>
+                    <ul class="footer-links">
+                        <li><a href="https://github.com/vinnumaiml/nova-vault" class="footer-link js-repo-link" target="_blank" rel="noopener">GitHub Repository</a></li>
+                        <li><a href="https://github.com/vinnumaiml/nova-vault/releases" class="footer-link" target="_blank" rel="noopener">Release Notes</a></li>
+                        <li><a href="https://github.com/vinnumaiml/nova-vault/issues" class="footer-link" target="_blank" rel="noopener">Issue Tracker</a></li>
+                        <li><a href="#faq" class="footer-link">FAQ</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-col">
+                    <h5>Legal & Security</h5>
+                    <ul class="footer-links">
+                        <li><a href="#privacy" class="footer-link">Privacy Policy</a></li>
+                        <li><a href="#architecture" class="footer-link">Cryptography Notice</a></li>
+                        <li><a href="https://github.com/vinnumaiml/nova-vault/blob/main/LICENSE" class="footer-link" target="_blank" rel="noopener">License</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <div>&copy; 2026 NOVA VAULT Project. All rights reserved.</div>
+                <div>Designed with Jetpack Compose &amp; Web Standards.</div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Script -->
+    <script src="app.js"></script>
+</body>
+</html>

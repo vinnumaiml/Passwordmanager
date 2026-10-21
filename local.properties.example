@@ -1,0 +1,14 @@
+# Nova Vault — local.properties template
+# Copy this file to local.properties and fill in real values.
+# NEVER commit local.properties to source control.
+
+# Android SDK path (required for builds)
+sdk.dir=C\:\\Users\\YOUR_USERNAME\\AppData\\Local\\Android\\Sdk
+
+# Supabase configuration
+# Get these from your Supabase project dashboard -> Settings -> API
+SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
+SUPABASE_ANON_KEY=YOUR_ANON_KEY_HERE
+
+# NOTE: The SERVICE_ROLE key must NEVER be placed here or in the app.
+# It is used only in backend migration scripts, never in the Android client.

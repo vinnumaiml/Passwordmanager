@@ -1,0 +1,41 @@
+## Nova Vault — .gitignore
+
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Local configuration — NEVER commit secrets
+local.properties
+keystore.properties
+*.jks
+*.keystore
+.env
+.env.*
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+captures/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# APK outputs and release assets (NEVER commit to git)
+*.apk
+*.aab
+*.sha256
+
+# Kotlin
+*.class
+kotlin-build/
+.kotlin/
+
+# Supabase service-role keys — NEVER commit
+supabase/.env
+supabase/functions/.env
+backend/.env
