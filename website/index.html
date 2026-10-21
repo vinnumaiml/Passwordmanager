@@ -433,7 +433,7 @@
                                 </li>
                                 <li class="spec-item">
                                     <span class="spec-label">File Size</span>
-                                    <span class="spec-val" id="rel-size">~28.9 MB</span>
+                                    <span class="spec-val" id="rel-size">7.2 MB</span>
                                 </li>
                                 <li class="spec-item">
                                     <span class="spec-label">Minimum SDK</span>
@@ -464,7 +464,7 @@
                             </button>
                         </div>
                         <div class="checksum-code">
-                            <span id="rel-sha">e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</span>
+                            <span id="rel-sha">b0a68c0218c1c794b81f3fd84fddefa66123182b726bf0cfa814ca27826d36a3</span>
                         </div>
                     </div>
                 </div>
@@ -666,6 +666,40 @@
             </div>
         </div>
     </footer>
+
+    
+    <!-- Download / Release Status Modal -->
+    <div id="download-modal" class="modal-overlay" aria-hidden="true">
+        <div class="modal-dialog">
+            <button class="modal-close" id="modal-close-btn">&times;</button>
+            <div class="modal-icon">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-cyan);">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+            </div>
+            <h3 class="modal-title">Release v1.0.0 Ready</h3>
+            <p class="modal-text">
+                Nova Vault v1.0.0 APK is compiled, signed, and verified (<strong>7.2 MB</strong>).
+            </p>
+            <div class="modal-status-box">
+                <div style="font-size:0.8125rem; color:var(--text-secondary); margin-bottom:4px;">Direct Download Setup:</div>
+                <div style="font-size:0.875rem; color:var(--status-warning); font-weight:600;">Pending GitHub Release publication</div>
+            </div>
+            <p class="modal-subtext">
+                To activate direct APK downloads on this site, create release <code>v1.0.0</code> on your GitHub repository.
+            </p>
+            <div class="modal-actions">
+                <a href="https://github.com/vinnumaiml/Passwordmanager/releases/new?tag=v1.0.0&title=Nova+Vault+v1.0.0" class="btn btn-primary btn-sm" target="_blank" rel="noopener">
+                    Publish Release on GitHub
+                </a>
+                <a href="https://github.com/vinnumaiml/Passwordmanager/releases" class="btn btn-secondary btn-sm" target="_blank" rel="noopener">
+                    View Releases Page
+                </a>
+            </div>
+        </div>
+    </div>
 
     <!-- Script -->
     <script src="app.js"></script>

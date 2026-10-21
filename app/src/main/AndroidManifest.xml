@@ -36,6 +36,18 @@
         android:usesCleartextTraffic="${usesCleartextTraffic}"
         tools:targetApi="31">
 
+        <!-- Disable default WorkManager initializer since NovaVaultApp implements Configuration.Provider -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+
         <!-- Main Activity — single activity architecture -->
         <activity
             android:name=".ui.MainActivity"
