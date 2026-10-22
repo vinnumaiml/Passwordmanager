@@ -15,5 +15,6 @@ interface UpdateRepository {
     suspend fun downloadUpdate(manifest: UpdateManifest): Result<File>
     fun canInstallApk(): Boolean
     fun getInstallIntent(apkFile: File): Intent
+    fun postUpdateNotification(manifest: UpdateManifest)
     fun resetStates()
 }

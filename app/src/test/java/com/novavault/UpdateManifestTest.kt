@@ -90,4 +90,29 @@ class UpdateManifestTest {
         assertTrue("Valid 64-char hex string must match SHA-256 pattern", shaRegex.matches(validHash))
         assertFalse("Truncated hash must fail validation", shaRegex.matches("e3b0c442"))
     }
+
+    @Test
+    fun testUpdateV3OverV2Installed() {
+        val installedVersionCode = 2
+        val manifestV3 = UpdateManifest(
+            versionCode = 3,
+            versionName = "1.2.0",
+            apkUrl = "https://raw.githubusercontent.com/vinnumaiml/Passwordmanager/main/website/Elvarix.apk",
+            sha256 = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            releaseNotes = "Elvarix v1.2.0: In-app update notifications and installer",
+        )
+
+        val isUpdateAvailable = manifestV3.versionCode > installedVersionCode
+        assertTrue("Manifest with versionCode 3 should be recognized as an update over 2", isUpdateAvailable)
+
+        val state = if (isUpdateAvailable) {
+            UpdateCheckState.UpdateAvailable(manifestV3)
+        } else {
+            UpdateCheckState.UpToDate
+        }
+
+        assertTrue(state is UpdateCheckState.UpdateAvailable)
+        assertEquals(3, (state as UpdateCheckState.UpdateAvailable).manifest.versionCode)
+        assertEquals("1.2.0", (state as UpdateCheckState.UpdateAvailable).manifest.versionName)
+    }
 }

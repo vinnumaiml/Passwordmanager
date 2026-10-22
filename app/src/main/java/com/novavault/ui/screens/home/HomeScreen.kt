@@ -155,9 +155,9 @@ fun HomeScreen(
     val securityScore by viewModel.securityScore.collectAsState()
     val updateState by updateViewModel.checkState.collectAsState()
 
-    // Gentle update check on Home screen start
+    // Active update check on Home screen start
     LaunchedEffect(Unit) {
-        updateViewModel.checkForUpdates(force = false)
+        updateViewModel.checkForUpdates(force = true)
     }
 
     val greetingName = if (userName.isNotBlank()) userName else "User"
@@ -232,7 +232,7 @@ fun HomeScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 20.dp, vertical = 6.dp)
-                                .clickable { /* Dialog is rendered below */ },
+                                .clickable { updateViewModel.showUpdateDialog() },
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),

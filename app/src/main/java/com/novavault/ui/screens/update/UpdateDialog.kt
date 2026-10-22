@@ -56,16 +56,19 @@ fun UpdateDialog(
     viewModel: UpdateViewModel,
     modifier: Modifier = Modifier,
 ) {
+    val isVisible by viewModel.isDialogVisible.collectAsState()
     val checkState by viewModel.checkState.collectAsState()
     val downloadState by viewModel.downloadState.collectAsState()
     val context = LocalContext.current
 
-    val manifest = (checkState as? UpdateCheckState.UpdateAvailable)?.manifest ?: return
+    val manifest = (checkState as? UpdateCheckState.UpdateAvailable)?.manifest
+
+    if (!isVisible || manifest == null) return
 
     BasicAlertDialog(
         onDismissRequest = {
             if (downloadState !is UpdateDownloadState.Downloading) {
-                viewModel.dismissUpdate()
+                viewModel.hideUpdateDialog()
             }
         },
         modifier = modifier.padding(16.dp),
@@ -120,7 +123,7 @@ fun UpdateDialog(
                     }
 
                     if (downloadState !is UpdateDownloadState.Downloading) {
-                        IconButton(onClick = { viewModel.dismissUpdate() }) {
+                        IconButton(onClick = { viewModel.hideUpdateDialog() }) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Close",
@@ -190,7 +193,7 @@ fun UpdateDialog(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             TextButton(
-                                onClick = { viewModel.dismissUpdate() },
+                                onClick = { viewModel.hideUpdateDialog() },
                                 modifier = Modifier.weight(1f),
                             ) {
                                 Text(
@@ -305,7 +308,7 @@ fun UpdateDialog(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                             ) {
                                 TextButton(
-                                    onClick = { viewModel.dismissUpdate() },
+                                    onClick = { viewModel.hideUpdateDialog() },
                                     modifier = Modifier.weight(1f),
                                 ) {
                                     Text("Dismiss", color = NovaColors.TextSecondary)

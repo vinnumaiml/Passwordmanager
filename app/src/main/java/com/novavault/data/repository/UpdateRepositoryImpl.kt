@@ -1,13 +1,22 @@
 package com.novavault.data.repository
 
+import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
+import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import com.novavault.R
 import com.novavault.domain.model.UpdateCheckState
 import com.novavault.domain.model.UpdateDownloadState
 import com.novavault.domain.model.UpdateManifest
 import com.novavault.domain.repository.UpdateRepository
+import com.novavault.ui.MainActivity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +26,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
+import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
@@ -36,13 +47,18 @@ class UpdateRepositoryImpl @Inject constructor(
     override val downloadState: StateFlow<UpdateDownloadState> = _downloadState.asStateFlow()
 
     private var lastCheckTimeMs: Long = 0L
-    private val checkCooldownMs = 15 * 60 * 1000L // 15 minutes throttle
+    private val checkCooldownMs = 2 * 60 * 1000L // 2 minutes cooldown between background checks
 
     companion object {
-        private const val PRIMARY_MANIFEST_URL =
-            "https://github.com/vinnumaiml/Passwordmanager/releases/latest/download/latest.json"
-        private const val FALLBACK_MANIFEST_URL =
+        const val NOTIFICATION_CHANNEL_UPDATES = "elvarix_updates"
+        const val NOTIFICATION_ID_UPDATE = 4001
+
+        // Ordered by reliability: raw GitHub main branch repository first, then GitHub Releases, then GitHub Pages
+        val MANIFEST_URLS = listOf(
+            "https://raw.githubusercontent.com/vinnumaiml/Passwordmanager/main/website/latest.json",
+            "https://github.com/vinnumaiml/Passwordmanager/releases/latest/download/latest.json",
             "https://vinnumaiml.github.io/Passwordmanager/latest.json"
+        )
     }
 
     private fun getCurrentVersionCode(): Int {
@@ -70,12 +86,16 @@ class UpdateRepositoryImpl @Inject constructor(
         lastCheckTimeMs = now
 
         try {
-            val manifestText = fetchManifestString(PRIMARY_MANIFEST_URL)
-                ?: fetchManifestString(FALLBACK_MANIFEST_URL)
+            var manifestText: String? = null
+            for (url in MANIFEST_URLS) {
+                manifestText = fetchManifestString(url)
+                if (manifestText != null) break
+            }
 
             if (manifestText == null) {
-                _checkState.value = UpdateCheckState.UpToDate
-                return@withContext Result.success(null)
+                val errorMsg = "Unable to connect to update servers. Please check your internet connection."
+                _checkState.value = UpdateCheckState.Error(errorMsg)
+                return@withContext Result.failure(IOException(errorMsg))
             }
 
             val manifest = json.decodeFromString<UpdateManifest>(manifestText)
@@ -83,6 +103,7 @@ class UpdateRepositoryImpl @Inject constructor(
 
             if (manifest.versionCode > currentCode) {
                 _checkState.value = UpdateCheckState.UpdateAvailable(manifest)
+                postUpdateNotification(manifest)
                 Result.success(manifest)
             } else {
                 _checkState.value = UpdateCheckState.UpToDate
@@ -105,7 +126,8 @@ class UpdateRepositoryImpl @Inject constructor(
             conn.setRequestProperty("Accept", "application/json")
             conn.setRequestProperty("User-Agent", "Elvarix-Android-App/${getCurrentVersionCode()}")
 
-            if (conn.responseCode == HttpURLConnection.HTTP_OK) {
+            val responseCode = conn.responseCode
+            if (responseCode == HttpURLConnection.HTTP_OK) {
                 conn.inputStream.bufferedReader().use { it.readText() }
             } else {
                 null
@@ -126,44 +148,40 @@ class UpdateRepositoryImpl @Inject constructor(
 
         _downloadState.value = UpdateDownloadState.Downloading(0, 0, 0)
 
-        var conn: HttpURLConnection? = null
+        // Candidate URLs: manifest URL first, then fallback to repository direct raw link
+        val candidateUrls = listOfNotNull(
+            manifest.apkUrl.takeIf { it.isNotBlank() },
+            "https://raw.githubusercontent.com/vinnumaiml/Passwordmanager/main/website/Elvarix.apk",
+            "https://github.com/vinnumaiml/Passwordmanager/releases/latest/download/Elvarix.apk"
+        ).distinct()
+
+        var downloadSuccess = false
+        var lastError: Exception? = null
+
+        for (downloadUrl in candidateUrls) {
+            try {
+                performDownload(downloadUrl, destFile)
+                downloadSuccess = true
+                break
+            } catch (e: Exception) {
+                lastError = e
+                if (destFile.exists()) destFile.delete()
+            }
+        }
+
+        if (!downloadSuccess) {
+            val errorMsg = lastError?.localizedMessage ?: "Download failed across all update mirrors"
+            _downloadState.value = UpdateDownloadState.Error(errorMsg)
+            return@withContext Result.failure(lastError ?: IOException(errorMsg))
+        }
+
         try {
-            val url = URL(manifest.apkUrl)
-            conn = url.openConnection() as HttpURLConnection
-            conn.connectTimeout = 15000
-            conn.readTimeout = 30000
-            conn.instanceFollowRedirects = true
-            conn.setRequestProperty("User-Agent", "Elvarix-Android-Updater")
-
-            if (conn.responseCode !in 200..299) {
-                throw IllegalStateException("Server returned HTTP ${conn.responseCode}")
-            }
-
-            val totalBytes = conn.contentLengthLong
-            val input = conn.inputStream
-            val output = FileOutputStream(destFile)
-
-            val buffer = ByteArray(8192)
-            var bytesRead: Int
-            var totalRead: Long = 0
-
-            while (input.read(buffer).also { bytesRead = it } != -1) {
-                output.write(buffer, 0, bytesRead)
-                totalRead += bytesRead
-                val percent = if (totalBytes > 0) ((totalRead * 100) / totalBytes).toInt() else 0
-                _downloadState.value = UpdateDownloadState.Downloading(percent, totalRead, totalBytes)
-            }
-
-            output.flush()
-            output.close()
-            input.close()
-
             // 1. Verify Checksum
             _downloadState.value = UpdateDownloadState.Verifying("Verifying cryptographic SHA-256…")
             val computedHash = calculateSha256(destFile)
-            if (!computedHash.equals(manifest.sha256.trim(), ignoreCase = true)) {
+            if (manifest.sha256.isNotBlank() && !computedHash.equals(manifest.sha256.trim(), ignoreCase = true)) {
                 destFile.delete()
-                val errorMsg = "Checksum verification failed! Expected: ${manifest.sha256}, Got: $computedHash"
+                val errorMsg = "Checksum mismatch!\nExpected: ${manifest.sha256}\nCalculated: $computedHash"
                 _downloadState.value = UpdateDownloadState.Error(errorMsg)
                 return@withContext Result.failure(SecurityException(errorMsg))
             }
@@ -182,17 +200,74 @@ class UpdateRepositoryImpl @Inject constructor(
             Result.success(destFile)
         } catch (e: Exception) {
             if (destFile.exists()) destFile.delete()
-            _downloadState.value = UpdateDownloadState.Error(e.localizedMessage ?: "Download failed")
+            _downloadState.value = UpdateDownloadState.Error(e.localizedMessage ?: "Verification failed")
             Result.failure(e)
+        }
+    }
+
+    private fun performDownload(urlString: String, destFile: File) {
+        var currentUrl = urlString
+        var conn: HttpURLConnection? = null
+        var redirects = 0
+
+        while (redirects < 5) {
+            val url = URL(currentUrl)
+            conn = url.openConnection() as HttpURLConnection
+            conn.connectTimeout = 15000
+            conn.readTimeout = 30000
+            conn.instanceFollowRedirects = true
+            conn.setRequestProperty("User-Agent", "Elvarix-Android-Updater")
+
+            val status = conn.responseCode
+            if (status == HttpURLConnection.HTTP_MOVED_TEMP ||
+                status == HttpURLConnection.HTTP_MOVED_PERM ||
+                status == HttpURLConnection.HTTP_SEE_OTHER ||
+                status == 307 || status == 308
+            ) {
+                val newUrl = conn.getHeaderField("Location")
+                conn.disconnect()
+                if (newUrl != null) {
+                    currentUrl = newUrl
+                    redirects++
+                    continue
+                }
+            }
+
+            if (status !in 200..299) {
+                conn.disconnect()
+                throw IllegalStateException("Server returned HTTP $status for $currentUrl")
+            }
+            break
+        }
+
+        val totalBytes = conn!!.contentLengthLong
+        val input: InputStream = conn.inputStream
+        val output = FileOutputStream(destFile)
+
+        try {
+            val buffer = ByteArray(16384)
+            var bytesRead: Int
+            var totalRead: Long = 0
+
+            while (input.read(buffer).also { bytesRead = it } != -1) {
+                output.write(buffer, 0, bytesRead)
+                totalRead += bytesRead
+                val percent = if (totalBytes > 0) ((totalRead * 100) / totalBytes).toInt() else 0
+                _downloadState.value = UpdateDownloadState.Downloading(percent, totalRead, totalBytes)
+            }
+
+            output.flush()
         } finally {
-            conn?.disconnect()
+            try { output.close() } catch (_: Exception) {}
+            try { input.close() } catch (_: Exception) {}
+            conn.disconnect()
         }
     }
 
     private fun calculateSha256(file: File): String {
         val digest = MessageDigest.getInstance("SHA-256")
         file.inputStream().use { input ->
-            val buffer = ByteArray(8192)
+            val buffer = ByteArray(16384)
             var read: Int
             while (input.read(buffer).also { read = it } != -1) {
                 digest.update(buffer, 0, read)
@@ -216,6 +291,64 @@ class UpdateRepositoryImpl @Inject constructor(
         return Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(contentUri, "application/vnd.android.package-archive")
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+        }
+    }
+
+    override fun postUpdateNotification(manifest: UpdateManifest) {
+        try {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+                ?: return
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val channel = NotificationChannel(
+                    NOTIFICATION_CHANNEL_UPDATES,
+                    "App Updates",
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = "Notifications for new Elvarix versions and security updates"
+                    enableLights(true)
+                    enableVibration(true)
+                }
+                notificationManager.createNotificationChannel(channel)
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED
+                ) {
+                    return
+                }
+            }
+
+            val intent = Intent(context, MainActivity::class.java).apply {
+                action = "com.novavault.action.OPEN_UPDATE"
+                putExtra("OPEN_UPDATE_DIALOG", true)
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val pendingIntent = PendingIntent.getActivity(
+                context,
+                1001,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val notification = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_UPDATES)
+                .setSmallIcon(R.drawable.ic_launcher_monochrome)
+                .setContentTitle("Elvarix v${manifest.versionName} Available")
+                .setContentText("A new verified update is ready to install inside the app.")
+                .setStyle(
+                    NotificationCompat.BigTextStyle().bigText(
+                        "A new verified update is available (v${manifest.versionName}). Tap to download and install inside Elvarix.\n${manifest.releaseNotes.take(160)}"
+                    )
+                )
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+                .build()
+
+            notificationManager.notify(NOTIFICATION_ID_UPDATE, notification)
+        } catch (_: Exception) {
+            // Non-critical background failure suppressed
         }
     }
 

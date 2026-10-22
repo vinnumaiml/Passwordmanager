@@ -1,9 +1,9 @@
 {
-  "versionCode": 2,
-  "versionName": "1.1.0",
+  "versionCode": 3,
+  "versionName": "1.2.0",
   "apkUrl": "https://github.com/vinnumaiml/Passwordmanager/releases/latest/download/Elvarix.apk",
-  "sha256": "3c42a69b62f321beb113a0e7a4120a04526f1d1b2500651d2e6ed1849b39b83e",
-  "releaseNotes": "Elvarix v1.1.0: Cryptographic vault lock/unlock lifecycle fix with hardware Keystore biometric support, inline safe unlock protection when adding passwords, intelligent auto-lock timeout, and premium branding.",
+  "sha256": "b17aea30c8b29c90069eec1dd7befad6ada3c1e8c39d58b3ee9343c39a092e6c",
+  "releaseNotes": "Elvarix v1.2.0: In-app auto-update system with system notifications, one-tap installation, background lock fixes, and biometric Keystore DEK recovery.",
   "mandatory": false,
   "minVersionCode": 1
 }
