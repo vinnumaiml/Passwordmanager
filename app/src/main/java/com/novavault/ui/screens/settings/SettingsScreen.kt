@@ -402,7 +402,11 @@ fun SettingsScreen(
                         value = updateSubtitle,
                         titleColor = if (updateCheckState is UpdateCheckState.UpdateAvailable) NovaColors.SecondaryAccent else NovaColors.TextPrimary,
                         onClick = {
-                            updateViewModel.checkForUpdates(force = true)
+                            if (updateCheckState is UpdateCheckState.UpdateAvailable) {
+                                updateViewModel.showUpdateDialog()
+                            } else {
+                                updateViewModel.checkForUpdates(force = true)
+                            }
                         },
                     )
                 }
@@ -530,8 +534,6 @@ fun SettingsScreen(
             },
         )
     }
-
-    UpdateDialog(viewModel = updateViewModel)
 
     // Account deletion confirmation dialog
     if (showDeleteAccountDialog) {

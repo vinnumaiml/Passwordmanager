@@ -118,12 +118,19 @@ class UpdateRepositoryImpl @Inject constructor(
     private fun fetchManifestString(urlString: String): String? {
         var conn: HttpURLConnection? = null
         return try {
-            val url = URL(urlString)
+            val cacheBustedUrl = if (urlString.contains("?")) {
+                "$urlString&_nocache=${System.currentTimeMillis()}"
+            } else {
+                "$urlString?_nocache=${System.currentTimeMillis()}"
+            }
+            val url = URL(cacheBustedUrl)
             conn = url.openConnection() as HttpURLConnection
             conn.connectTimeout = 8000
             conn.readTimeout = 8000
             conn.instanceFollowRedirects = true
             conn.setRequestProperty("Accept", "application/json")
+            conn.setRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate")
+            conn.setRequestProperty("Pragma", "no-cache")
             conn.setRequestProperty("User-Agent", "Elvarix-Android-App/${getCurrentVersionCode()}")
 
             val responseCode = conn.responseCode
@@ -148,10 +155,11 @@ class UpdateRepositoryImpl @Inject constructor(
 
         _downloadState.value = UpdateDownloadState.Downloading(0, 0, 0)
 
-        // Candidate URLs: manifest URL first, then fallback to repository direct raw link
+        // Candidate URLs: manifest URL first, then fallback to repository direct raw link and Pages CDN
         val candidateUrls = listOfNotNull(
             manifest.apkUrl.takeIf { it.isNotBlank() },
             "https://raw.githubusercontent.com/vinnumaiml/Passwordmanager/main/website/Elvarix.apk",
+            "https://vinnumaiml.github.io/Passwordmanager/Elvarix.apk",
             "https://github.com/vinnumaiml/Passwordmanager/releases/latest/download/Elvarix.apk"
         ).distinct()
 
@@ -341,7 +349,9 @@ class UpdateRepositoryImpl @Inject constructor(
                         "A new verified update is available (v${manifest.versionName}). Tap to download and install inside Elvarix.\n${manifest.releaseNotes.take(160)}"
                     )
                 )
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
                 .build()

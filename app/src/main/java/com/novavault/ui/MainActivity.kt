@@ -1,6 +1,7 @@
 package com.novavault.ui
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -16,7 +17,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -26,6 +26,8 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.novavault.ui.navigation.NovaVaultNavGraph
+import com.novavault.ui.screens.update.UpdateDialog
+import com.novavault.ui.screens.update.UpdateViewModel
 import com.novavault.ui.theme.NovaVaultTheme
 import com.novavault.util.BiometricPromptManager
 import dagger.hilt.android.AndroidEntryPoint
@@ -42,6 +44,7 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var biometricPromptManager: BiometricPromptManager
 
     private lateinit var navViewModel: NavViewModel
+    private var updateViewModelRef: UpdateViewModel? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
@@ -59,6 +62,8 @@ class MainActivity : FragmentActivity() {
 
         setContent {
             navViewModel = hiltViewModel()
+            val updateViewModel: UpdateViewModel = hiltViewModel()
+            updateViewModelRef = updateViewModel
 
             // Observe screenshot-protection setting
             val screenshotProtectionEnabled by navViewModel.screenshotProtectionEnabled
@@ -79,7 +84,11 @@ class MainActivity : FragmentActivity() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 val notificationPermissionLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestPermission()
-                ) { /* Result handled by system */ }
+                ) { isGranted ->
+                    if (isGranted) {
+                        updateViewModel.checkForUpdates(force = true)
+                    }
+                }
 
                 LaunchedEffect(Unit) {
                     if (ContextCompat.checkSelfPermission(
@@ -104,7 +113,7 @@ class MainActivity : FragmentActivity() {
                     (accessibilityManager?.isEnabled == true &&
                             accessibilityManager.isTouchExplorationEnabled)
 
-            // Lifecycle observer — auto-lock vault when app goes to background
+            // Lifecycle observer — auto-lock vault when app goes to background & check updates on foreground
             val lifecycleOwner = LocalLifecycleOwner.current
             DisposableEffect(lifecycleOwner) {
                 val observer = object : DefaultLifecycleObserver {
@@ -113,14 +122,20 @@ class MainActivity : FragmentActivity() {
                     }
                     override fun onStart(owner: LifecycleOwner) {
                         navViewModel.onAppForegrounded()
+                        updateViewModel.checkForUpdates(force = true)
                     }
                 }
                 lifecycleOwner.lifecycle.addObserver(observer)
                 onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
             }
 
-            // Handle incoming deep link if opened via URL
+            // Handle incoming deep link or update notification intent
             LaunchedEffect(Unit) {
+                if (intent?.getBooleanExtra("OPEN_UPDATE_DIALOG", false) == true ||
+                    intent?.action == "com.novavault.action.OPEN_UPDATE") {
+                    updateViewModel.showUpdateDialog()
+                }
+                updateViewModel.checkForUpdates(force = true)
                 intent?.dataString?.let { uri ->
                     navViewModel.handleDeepLink(uri)
                 }
@@ -132,14 +147,20 @@ class MainActivity : FragmentActivity() {
             ) {
                 NovaVaultTheme {
                     NovaVaultNavGraph(navViewModel = navViewModel)
+                    // Global Update Dialog — presents on any screen when an update is available
+                    UpdateDialog(viewModel = updateViewModel)
                 }
             }
         }
     }
 
-    override fun onNewIntent(intent: android.content.Intent) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        if (intent.getBooleanExtra("OPEN_UPDATE_DIALOG", false) ||
+            intent.action == "com.novavault.action.OPEN_UPDATE") {
+            updateViewModelRef?.showUpdateDialog()
+        }
         intent.dataString?.let { uri ->
             if (::navViewModel.isInitialized) {
                 navViewModel.handleDeepLink(uri)

@@ -605,9 +605,6 @@ fun HomeScreen(
                 modifier = Modifier.size(28.dp),
             )
         }
-
-        // Render In-App Update Dialog when update is available
-        UpdateDialog(viewModel = updateViewModel)
     }
 }
 
