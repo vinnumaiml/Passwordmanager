@@ -120,7 +120,7 @@ fun VaultScreen(
     val selectedType by viewModel.selectedType.collectAsState()
     var showTypePicker by remember { mutableStateOf(false) }
 
-    AuroraBackground {
+    AuroraBackground(isQuiet = true) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -263,6 +263,35 @@ fun VaultScreen(
                     }
                 }
             }
+        }
+
+        // Working Floating Action Button (FAB) to Add Item
+        FloatingActionButton(
+            onClick = {
+                if (isVaultLocked) {
+                    navController.navigate(NavRoute.VaultLock.route)
+                } else {
+                    val targetType = selectedType?.name ?: "LOGIN"
+                    navController.navigate(NavRoute.AddItem.createRoute(targetType))
+                }
+            },
+            shape = androidx.compose.foundation.shape.CircleShape,
+            containerColor = NovaColors.PrimaryAccent,
+            contentColor = NovaColors.Background,
+            elevation = androidx.compose.material3.FloatingActionButtonDefaults.elevation(
+                defaultElevation = 6.dp,
+                pressedElevation = 10.dp,
+            ),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 20.dp, bottom = 80.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Add Item",
+                tint = NovaColors.Background,
+                modifier = Modifier.size(28.dp),
+            )
         }
     }
 }

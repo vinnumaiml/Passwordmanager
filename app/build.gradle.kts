@@ -180,8 +180,8 @@ dependencies {
     androidTestImplementation(libs.truth)
 }
 
-
 tasks.withType<Test> {
     reports.html.required.set(false)
     reports.junitXml.required.set(false)
+    binaryResultsDirectory.set(file("${System.getProperty("java.io.tmpdir")}/elvarix-test-bin/$name"))
 }

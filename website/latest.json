@@ -2,8 +2,8 @@
   "versionCode": 3,
   "versionName": "1.2.0",
   "apkUrl": "https://github.com/vinnumaiml/Passwordmanager/releases/latest/download/Elvarix.apk",
-  "sha256": "b17aea30c8b29c90069eec1dd7befad6ada3c1e8c39d58b3ee9343c39a092e6c",
-  "releaseNotes": "Elvarix v1.2.0: In-app auto-update system with system notifications, one-tap installation, background lock fixes, and biometric Keystore DEK recovery.",
+  "sha256": "355e1a3cf5d901fa23b27cb7ac32dd98604d8e52642c5c3f28e3c5905bb28035",
+  "releaseNotes": "Elvarix v1.2.0: Complete Elvarix rebrand, studio precision dark UI/UX, email verification deep links (elvarix://auth/callback), working + FAB, time-based greetings to full name, and in-app update notification system.",
   "mandatory": false,
   "minVersionCode": 1
 }

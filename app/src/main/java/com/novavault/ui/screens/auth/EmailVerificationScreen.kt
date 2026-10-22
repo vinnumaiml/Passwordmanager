@@ -242,11 +242,11 @@ fun EmailVerificationScreen(
 
             // Spam warning card
             NovaCard(
-                glowColor = NovaColors.SecondaryAccent,
+                borderColor = NovaColors.Border,
+                contentPadding = 14.dp,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
-                    modifier = Modifier.padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
@@ -257,7 +257,7 @@ fun EmailVerificationScreen(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "Don\'t see the email? Please check your Spam or Junk folder. It typically arrives within 1-2 minutes.",
+                        text = "Don't see the email? Please check your Spam or Junk folder. It typically arrives within 1-2 minutes.",
                         style = MaterialTheme.typography.bodySmall,
                         color = NovaColors.TextSecondary,
                         lineHeight = 18.sp,

@@ -69,6 +69,7 @@ private const val AURORA_BLOB_RADIUS_FRACTION = 0.40f
 @Composable
 fun AuroraBackground(
     modifier: Modifier = Modifier,
+    isQuiet: Boolean = false,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val reducedMotion = LocalReducedMotion.current
@@ -154,6 +155,29 @@ fun AuroraBackground(
 
             // 1. Solid background
             drawRect(color = NovaColors.Background)
+
+            if (isQuiet) {
+                // Quiet atmospheric background for content-heavy screens (Home, Vault)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(NovaColors.AuroraViolet.copy(alpha = 0.08f), Color.Transparent),
+                        center = Offset(w * 0.15f, 0f),
+                        radius = w * 0.7f,
+                    ),
+                    radius = w * 0.7f,
+                    center = Offset(w * 0.15f, 0f),
+                )
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(NovaColors.AuroraCyan.copy(alpha = 0.05f), Color.Transparent),
+                        center = Offset(w * 0.85f, h * 0.4f),
+                        radius = w * 0.6f,
+                    ),
+                    radius = w * 0.6f,
+                    center = Offset(w * 0.85f, h * 0.4f),
+                )
+                return@Canvas
+            }
 
             // 2. Aurora blobs
             drawAuroraBlob(

@@ -119,4 +119,11 @@ class NavViewModel @Inject constructor(
             }
         }
     }
+
+    fun handleDeepLink(uri: String?) {
+        if (uri.isNullOrBlank()) return
+        viewModelScope.launch {
+            authRepository.handleAuthCallbackUri(uri)
+        }
+    }
 }

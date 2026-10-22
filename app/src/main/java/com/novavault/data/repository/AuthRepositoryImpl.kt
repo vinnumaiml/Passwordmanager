@@ -319,4 +319,35 @@ class AuthRepositoryImpl @Inject constructor(
     override fun isSessionValid(): Boolean {
         return _authState.value is AuthState.Authenticated
     }
+
+    override suspend fun handleAuthCallbackUri(uri: String): Result<Unit> {
+        return try {
+            if (uri.isBlank()) return Result.failure(IllegalArgumentException("Empty callback URI"))
+
+            val androidUri = android.net.Uri.parse(uri)
+            val fragment = androidUri.fragment
+            val code = androidUri.getQueryParameter("code")
+
+            if (!code.isNullOrBlank()) {
+                try {
+                    auth.exchangeCodeForSession(code)
+                } catch (ignored: Exception) {}
+            } else if (!fragment.isNullOrBlank() && fragment.contains("access_token")) {
+                val params = fragment.split("&").associate {
+                    val parts = it.split("=")
+                    if (parts.size == 2) parts[0] to parts[1] else "" to ""
+                }
+                val accessToken = params["access_token"]
+                if (!accessToken.isNullOrBlank()) {
+                    try {
+                        auth.importAuthToken(accessToken)
+                    } catch (ignored: Exception) {}
+                }
+            }
+
+            refreshSession()
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

@@ -69,6 +69,7 @@ import com.novavault.domain.repository.AuthRepository
 import com.novavault.domain.repository.VaultRepository
 import com.novavault.domain.usecase.vault.GeneratePasswordUseCase
 import com.novavault.domain.usecase.vault.PasswordStrength
+import com.novavault.ui.components.ElvarixCoreSymbol
 import com.novavault.ui.components.VaultItemCard
 import com.novavault.ui.navigation.NavRoute
 import com.novavault.ui.screens.update.UpdateDialog
@@ -162,7 +163,7 @@ fun HomeScreen(
 
     val greetingName = if (userName.isNotBlank()) userName else "User"
 
-    AuroraBackground {
+    AuroraBackground(isQuiet = true) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -178,28 +179,32 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column {
-                        Text(
-                            text = "ELVARIX",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = NovaColors.SecondaryAccent,
-                                letterSpacing = 2.5.sp,
-                            ),
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "${getPersonalizedGreeting()}, $greetingName",
-                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                            color = NovaColors.TextPrimary,
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        ElvarixCoreSymbol(size = 40.dp, animatedGlow = false)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "ELVARIX",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = NovaColors.PrimaryAccent,
+                                    letterSpacing = 2.sp,
+                                ),
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "${getPersonalizedGreeting()}, $greetingName",
+                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                color = NovaColors.TextPrimary,
+                            )
+                        }
                     }
 
                     // Security Shield indicator badge
                     Surface(
                         shape = CircleShape,
                         color = NovaColors.SurfaceElevated,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, NovaColors.GlowCyan),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, NovaColors.Border),
                         modifier = Modifier
                             .size(42.dp)
                             .clickable { navController.navigate(NavRoute.SecurityCenter.route) },
@@ -571,6 +576,34 @@ fun HomeScreen(
                     }
                 }
             }
+        }
+
+        // Working Floating Action Button (FAB) to Add Item
+        FloatingActionButton(
+            onClick = {
+                if (isVaultLocked) {
+                    navController.navigate(NavRoute.VaultLock.route)
+                } else {
+                    navController.navigate(NavRoute.AddItem.createRoute("LOGIN"))
+                }
+            },
+            shape = CircleShape,
+            containerColor = NovaColors.PrimaryAccent,
+            contentColor = NovaColors.Background,
+            elevation = androidx.compose.material3.FloatingActionButtonDefaults.elevation(
+                defaultElevation = 6.dp,
+                pressedElevation = 10.dp,
+            ),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 20.dp, bottom = 80.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Add Item",
+                tint = NovaColors.Background,
+                modifier = Modifier.size(28.dp),
+            )
         }
 
         // Render In-App Update Dialog when update is available

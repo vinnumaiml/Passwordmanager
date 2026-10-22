@@ -119,6 +119,13 @@ class MainActivity : FragmentActivity() {
                 onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
             }
 
+            // Handle incoming deep link if opened via URL
+            LaunchedEffect(Unit) {
+                intent?.dataString?.let { uri ->
+                    navViewModel.handleDeepLink(uri)
+                }
+            }
+
             CompositionLocalProvider(
                 LocalReducedMotion provides reducedMotion,
                 LocalBiometricPromptManager provides biometricPromptManager,
@@ -126,6 +133,16 @@ class MainActivity : FragmentActivity() {
                 NovaVaultTheme {
                     NovaVaultNavGraph(navViewModel = navViewModel)
                 }
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        intent.dataString?.let { uri ->
+            if (::navViewModel.isInitialized) {
+                navViewModel.handleDeepLink(uri)
             }
         }
     }

@@ -231,7 +231,7 @@ fun VaultLockScreen(
         }
     }
 
-    AuroraBackground {
+    AuroraBackground(isQuiet = true) {
         Column(
             modifier = Modifier
                 .fillMaxSize()

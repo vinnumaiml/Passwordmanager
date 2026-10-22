@@ -60,6 +60,7 @@ fun VaultItemCard(
         colors = CardDefaults.cardColors(
             containerColor = NovaColors.SurfaceVariant,
         ),
+        border = androidx.compose.foundation.BorderStroke(1.dp, NovaColors.Border),
     ) {
         Row(
             modifier = Modifier

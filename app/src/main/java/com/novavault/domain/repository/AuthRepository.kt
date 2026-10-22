@@ -16,4 +16,5 @@ interface AuthRepository {
     fun isSessionValid(): Boolean
     fun isBackendConfigured(): Boolean
     suspend fun activateSovereignMode(): Result<Unit>
+    suspend fun handleAuthCallbackUri(uri: String): Result<Unit>
 }
