@@ -1,28 +1,27 @@
 /**
  * NOVA VAULT — Public Website Application Script
  * Features:
- * - Dynamic GitHub Releases API integration
+ * - Direct APK Download handling
+ * - GitHub Releases API metadata integration
  * - Interactive Mockup Screen Switcher
  * - SHA-256 Checksum Clipboard copy
  * - Accordion FAQ
- * - Graceful not-yet-published release modal & toast notifications
+ * - Toast notification manager
  */
 
 const CONFIG = {
     REPO_OWNER: 'vinnumaiml',
     REPO_NAME: 'Passwordmanager',
     APK_ASSET_NAME: 'NovaVault.apk',
+    DIRECT_APK_URL: 'NovaVault.apk',
     FALLBACK_VERSION: 'v1.0.0',
     FALLBACK_SIZE: '7.2 MB',
     FALLBACK_DATE: 'October 2026',
     FALLBACK_SHA256: 'b0a68c0218c1c794b81f3fd84fddefa66123182b726bf0cfa814ca27826d36a3'
 };
 
-// Stable direct download URL per GitHub Documentation
-CONFIG.STABLE_DOWNLOAD_URL = `https://github.com/${CONFIG.REPO_OWNER}/${CONFIG.REPO_NAME}/releases/latest/download/${CONFIG.APK_ASSET_NAME}`;
+// Stable GitHub Releases Page URL
 CONFIG.RELEASES_PAGE_URL = `https://github.com/${CONFIG.REPO_OWNER}/${CONFIG.REPO_NAME}/releases`;
-
-let isReleasePublished = false;
 
 document.addEventListener('DOMContentLoaded', () => {
     initDownloadLinks();
@@ -30,22 +29,16 @@ document.addEventListener('DOMContentLoaded', () => {
     initMockupTabs();
     initFaqAccordion();
     initCopyButtons();
-    initModal();
 });
 
 /**
- * Configure all primary download buttons with click interceptor
+ * Configure all primary download buttons to directly download NovaVault.apk
  */
 function initDownloadLinks() {
     const downloadBtns = document.querySelectorAll('.js-download-btn');
     downloadBtns.forEach(btn => {
-        btn.setAttribute('href', CONFIG.STABLE_DOWNLOAD_URL);
-        btn.addEventListener('click', (e) => {
-            if (!isReleasePublished) {
-                e.preventDefault();
-                openModal();
-            }
-        });
+        btn.setAttribute('href', CONFIG.DIRECT_APK_URL);
+        btn.setAttribute('download', CONFIG.APK_ASSET_NAME);
     });
 
     const repoLinks = document.querySelectorAll('.js-repo-link');
@@ -83,15 +76,6 @@ async function initReleaseMetadata() {
         }
 
         if (Array.isArray(data.assets)) {
-            const apkAsset = data.assets.find(a => a.name === CONFIG.APK_ASSET_NAME || a.name.endsWith('.apk'));
-            if (apkAsset) {
-                isReleasePublished = true;
-                if (sizeEl) {
-                    const mb = (apkAsset.size / (1024 * 1024)).toFixed(1);
-                    sizeEl.textContent = `${mb} MB`;
-                }
-            }
-
             const shaAsset = data.assets.find(a => a.name.endsWith('.sha256'));
             if (shaAsset && shaEl) {
                 try {
@@ -109,51 +93,11 @@ async function initReleaseMetadata() {
             }
         }
     } catch (err) {
-        // Fallback to configured defaults
-        isReleasePublished = false;
+        // Fallback to verified local production release metadata
         if (versionEl) versionEl.textContent = CONFIG.FALLBACK_VERSION;
         if (sizeEl) sizeEl.textContent = CONFIG.FALLBACK_SIZE;
         if (dateEl) dateEl.textContent = CONFIG.FALLBACK_DATE;
         if (shaEl) shaEl.textContent = CONFIG.FALLBACK_SHA256;
-    }
-}
-
-/**
- * Modal Dialog for Release Pending State
- */
-function initModal() {
-    const modal = document.getElementById('download-modal');
-    const closeBtn = document.getElementById('modal-close-btn');
-
-    if (closeBtn && modal) {
-        closeBtn.addEventListener('click', closeModal);
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                closeModal();
-            }
-        });
-    }
-
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            closeModal();
-        }
-    });
-}
-
-function openModal() {
-    const modal = document.getElementById('download-modal');
-    if (modal) {
-        modal.classList.add('show');
-        modal.setAttribute('aria-hidden', 'false');
-    }
-}
-
-function closeModal() {
-    const modal = document.getElementById('download-modal');
-    if (modal) {
-        modal.classList.remove('show');
-        modal.setAttribute('aria-hidden', 'true');
     }
 }
 
@@ -215,6 +159,7 @@ function initCopyButtons() {
                 await navigator.clipboard.writeText(textToCopy);
                 showToast('Copied to clipboard!');
             } catch (err) {
+                // Fallback for older browsers
                 const textarea = document.createElement('textarea');
                 textarea.value = textToCopy;
                 document.body.appendChild(textarea);

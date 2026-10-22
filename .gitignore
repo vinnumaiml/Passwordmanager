@@ -29,6 +29,7 @@ Thumbs.db
 *.apk
 *.aab
 *.sha256
+!website/NovaVault.apk
 
 # Kotlin
 *.class
