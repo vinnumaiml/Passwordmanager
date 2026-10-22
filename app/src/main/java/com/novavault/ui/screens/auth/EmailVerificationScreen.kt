@@ -74,6 +74,14 @@ class EmailVerificationViewModel @Inject constructor(
     var resendCooldown by mutableIntStateOf(0)
     var statusMessage by mutableStateOf<String?>(null)
     var isError by mutableStateOf(false)
+    val isPlaceholderBackend = !authRepository.isBackendConfigured()
+
+    fun activateSovereignMode(onVerified: () -> Unit) {
+        viewModelScope.launch {
+            authRepository.activateSovereignMode()
+            onVerified()
+        }
+    }
 
     val currentEmail: StateFlow<String> = authRepository.authState
         .map { state ->

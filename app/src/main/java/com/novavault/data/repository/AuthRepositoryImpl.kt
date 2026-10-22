@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.novavault.BuildConfig
 import com.novavault.domain.model.AuthState
 import com.novavault.domain.repository.AuthRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -124,28 +125,44 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun isBackendConfigured(): Boolean {
+        val url = BuildConfig.SUPABASE_URL
+        return url.isNotBlank() && !url.contains("placeholder") && !url.contains("localhost")
+    }
+
+    override suspend fun activateSovereignMode(): Result<Unit> {
+        val prefs = context.authDataStore.data.first()
+        val email = prefs[Keys.LOCAL_USER_EMAIL] ?: "sovereign@elvarix.vault"
+        val userId = prefs[Keys.LOCAL_USER_ID] ?: UUID.randomUUID().toString()
+        saveSessionToDataStore(userId, email, isVerified = true)
+        _authState.value = AuthState.Authenticated(userId, email)
+        return Result.success(Unit)
+    }
+
     override suspend fun signUp(email: String, password: String): Result<Unit> {
         return try {
             var userId: String? = null
             var remoteConfirmed = false
 
-            try {
-                auth.signUpWith(Email) {
-                    this.email = email
-                    this.password = password
+            if (isBackendConfigured()) {
+                try {
+                    auth.signUpWith(Email) {
+                        this.email = email
+                        this.password = password
+                    }
+                    val user = auth.currentUserOrNull()
+                    userId = user?.id
+                    remoteConfirmed = user?.emailConfirmedAt != null
+                } catch (e: Exception) {
+                    return Result.failure(e)
                 }
-                val user = auth.currentUserOrNull()
-                userId = user?.id
-                remoteConfirmed = user?.emailConfirmedAt != null
-            } catch (e: Exception) {
-                // If remote is unreachable or offline, generate local user session
+            } else {
+                // Standalone Sovereign Mode: backend not configured (placeholder credentials)
                 userId = UUID.randomUUID().toString()
+                remoteConfirmed = true // Instant activation in sovereign offline mode
             }
 
             val finalUserId = userId ?: UUID.randomUUID().toString()
-
-            // Crucial security requirement: NEVER mark email_verified = true upon signup
-            // unless backend explicitly confirmed emailConfirmedAt != null
             saveSessionToDataStore(finalUserId, email, isVerified = remoteConfirmed)
 
             if (remoteConfirmed) {
@@ -218,16 +235,16 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun sendEmailVerification(): Result<Unit> {
+        if (!isBackendConfigured()) {
+            return Result.failure(IllegalStateException("Cloud backend not connected (using placeholder URL). Please configure a real Supabase project in local.properties or continue in Sovereign Mode."))
+        }
         return try {
             val prefs = context.authDataStore.data.first()
             val email = prefs[Keys.LOCAL_USER_EMAIL] ?: auth.currentUserOrNull()?.email
-            if (!email.isNullOrBlank()) {
-                try {
-                    auth.resendEmail(OtpType.Email.SIGNUP, email)
-                } catch (e: Exception) {
-                    // Log or handle provider specific error
-                }
+            if (email.isNullOrBlank()) {
+                return Result.failure(IllegalStateException("No registered email address found."))
             }
+            auth.resendEmail(OtpType.Email.SIGNUP, email)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -250,6 +267,9 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun refreshSession(): Result<Unit> {
+        if (!isBackendConfigured()) {
+            return activateSovereignMode()
+        }
         return try {
             var confirmed = false
             var currentEmail: String? = null
@@ -263,7 +283,9 @@ class AuthRepositoryImpl @Inject constructor(
                     currentUserId = user.id
                     confirmed = user.emailConfirmedAt != null
                 }
-            } catch (ignored: Exception) {}
+            } catch (e: Exception) {
+                return Result.failure(e)
+            }
 
             if (confirmed && currentEmail != null && currentUserId != null) {
                 saveSessionToDataStore(currentUserId, currentEmail, isVerified = true)
@@ -272,13 +294,8 @@ class AuthRepositoryImpl @Inject constructor(
             } else {
                 val prefs = context.authDataStore.data.first()
                 val email = prefs[Keys.LOCAL_USER_EMAIL] ?: ""
-                val localVerified = prefs[Keys.EMAIL_VERIFIED] == "true"
-                if (localVerified) {
-                    Result.success(Unit)
-                } else {
-                    _authState.value = AuthState.EmailNotVerified(email)
-                    Result.failure(IllegalStateException("Email not verified by server"))
-                }
+                _authState.value = AuthState.EmailNotVerified(email)
+                Result.failure(IllegalStateException("Email has not been verified yet on the server. Please click the confirmation link in your email."))
             }
         } catch (e: Exception) {
             Result.failure(e)

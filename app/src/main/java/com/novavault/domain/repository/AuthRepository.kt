@@ -13,4 +13,6 @@ interface AuthRepository {
     suspend fun deleteAccount(): Result<Unit>
     suspend fun refreshSession(): Result<Unit>
     fun isSessionValid(): Boolean
+    fun isBackendConfigured(): Boolean
+    suspend fun activateSovereignMode(): Result<Unit>
 }

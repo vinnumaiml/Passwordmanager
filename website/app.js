@@ -17,7 +17,7 @@ const CONFIG = {
     FALLBACK_VERSION: 'v1.1.0',
     FALLBACK_SIZE: '6.9 MB',
     FALLBACK_DATE: 'October 2026',
-    FALLBACK_SHA256: 'fbe2138ee2262210d2d818efb08589791cb6a304e5cf08f712bcdf05bc30d0dc'
+    FALLBACK_SHA256: 'c4cab949d958047a4ce0ad43b01551f33b19f0283e56beb6b82db2a35f94793e'
 };
 
 // Stable GitHub Releases Page URL
