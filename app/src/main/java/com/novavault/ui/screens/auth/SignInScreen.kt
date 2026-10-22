@@ -62,7 +62,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
+import com.novavault.domain.model.AuthState
 import com.novavault.domain.repository.AuthRepository
+import com.novavault.ui.components.ElvarixCoreSymbol
 import com.novavault.ui.navigation.NavRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -76,7 +78,8 @@ import javax.inject.Inject
 sealed class SignInUiState {
     data object Idle : SignInUiState()
     data object Loading : SignInUiState()
-    data class Success(val needsMasterPasswordSetup: Boolean) : SignInUiState()
+    data class Success(val email: String) : SignInUiState()
+    data class EmailNotVerified(val email: String) : SignInUiState()
     data class Error(val message: String) : SignInUiState()
 }
 
@@ -90,25 +93,50 @@ class SignInViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<SignInUiState>(SignInUiState.Idle)
     val uiState: StateFlow<SignInUiState> = _uiState.asStateFlow()
 
+    init {
+        viewModelScope.launch {
+            authRepository.authState.collect { authState ->
+                when (authState) {
+                    is AuthState.Authenticated -> {
+                        _uiState.value = SignInUiState.Success(authState.email)
+                    }
+                    is AuthState.EmailNotVerified -> {
+                        _uiState.value = SignInUiState.EmailNotVerified(authState.email)
+                    }
+                    else -> Unit
+                }
+            }
+        }
+    }
+
     fun signIn(email: String, password: String) {
-        if (email.isBlank() || !email.contains("@")) {
+        val trimmedEmail = email.trim()
+        if (trimmedEmail.isBlank() || !trimmedEmail.contains("@")) {
             _uiState.value = SignInUiState.Error("Please enter a valid email address.")
             return
         }
         if (password.isBlank()) {
-            _uiState.value = SignInUiState.Error("Password cannot be empty.")
+            _uiState.value = SignInUiState.Error("Please enter your account password.")
             return
         }
 
         viewModelScope.launch {
             _uiState.value = SignInUiState.Loading
-            val result = authRepository.signIn(email.trim(), password)
-            if (result.isSuccess) {
-                _uiState.value = SignInUiState.Success(needsMasterPasswordSetup = false)
-            } else {
-                _uiState.value = SignInUiState.Error(
-                    result.exceptionOrNull()?.message ?: "Sign in failed. Please check your credentials."
-                )
+            val result = authRepository.signIn(trimmedEmail, password)
+            if (result.isFailure) {
+                val rawMsg = result.exceptionOrNull()?.message ?: "Sign in failed"
+                val friendlyMsg = when {
+                    rawMsg.contains("Invalid login", ignoreCase = true) ->
+                        "Incorrect email or password. Please try again."
+                    rawMsg.contains("Email not confirmed", ignoreCase = true) -> {
+                        _uiState.value = SignInUiState.EmailNotVerified(trimmedEmail)
+                        return@launch
+                    }
+                    rawMsg.contains("network", ignoreCase = true) || rawMsg.contains("connect", ignoreCase = true) ->
+                        "Cannot connect to auth service. Check your internet connection."
+                    else -> rawMsg
+                }
+                _uiState.value = SignInUiState.Error(friendlyMsg)
             }
         }
     }
@@ -135,24 +163,29 @@ fun SignInScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
-    // Navigate on success
     LaunchedEffect(uiState) {
-        when (val state = uiState) {
+        when (uiState) {
             is SignInUiState.Success -> {
-                if (state.needsMasterPasswordSetup) {
-                    navController.navigate(NavRoute.MasterPasswordSetup.route) {
-                        popUpTo(NavRoute.SignIn.route) { inclusive = true }
-                        launchSingleTop = true
-                    }
+                navController.navigate(NavRoute.MasterPasswordSetup.route) {
+                    popUpTo(NavRoute.SignIn.route) { inclusive = true }
+                    launchSingleTop = true
                 }
-                // Otherwise NavViewModel's authState collector in NavGraph handles routing
+            }
+            is SignInUiState.EmailNotVerified -> {
+                navController.navigate(NavRoute.EmailVerification.route) {
+                    popUpTo(NavRoute.SignIn.route) { inclusive = true }
+                    launchSingleTop = true
+                }
             }
             else -> Unit
         }
     }
 
     val bgGradient = Brush.verticalGradient(
-        listOf(Color(0xFF0A0A1A), Color(0xFF0D1B3E))
+        colors = listOf(
+            Color(0xFF080A14),
+            Color(0xFF10162A),
+        )
     )
 
     Box(
@@ -172,28 +205,25 @@ fun SignInScreen(
         ) {
             Spacer(modifier = Modifier.height(48.dp))
 
-            // Logo + Title
-            Icon(
-                imageVector = Icons.Default.Lock,
-                contentDescription = "Elvarix",
-                tint = Color(0xFF5B7FFF),
-                modifier = Modifier.size(56.dp),
-            )
-            Spacer(modifier = Modifier.height(12.dp))
+            // The Elvarix Core Vector Logo
+            ElvarixCoreSymbol(size = 64.dp, animatedGlow = true)
+
+            Spacer(modifier = Modifier.height(14.dp))
             Text(
                 text = "ELVARIX",
                 color = Color.White,
                 fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 4.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 6.sp,
             )
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Welcome back",
+                text = "Welcome back to Sovereign Privacy",
                 color = Color.White.copy(alpha = 0.6f),
-                fontSize = 14.sp,
+                fontSize = 13.sp,
             )
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(36.dp))
 
             // Error banner
             if (uiState is SignInUiState.Error) {
@@ -221,13 +251,21 @@ fun SignInScreen(
                 ),
                 shape = RoundedCornerShape(20.dp),
             ) {
-                Column(modifier = Modifier.padding(24.dp)) {
-                    // Email field
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    // Email
                     OutlinedTextField(
                         value = email,
-                        onValueChange = { email = it; viewModel.clearError() },
+                        onValueChange = {
+                            email = it
+                            viewModel.clearError()
+                        },
                         label = { Text("Email") },
-                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFF5B7FFF)) },
+                        leadingIcon = {
+                            Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFF8B5CF6))
+                        },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(
@@ -242,17 +280,22 @@ fun SignInScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Password field
+                    // Password
                     OutlinedTextField(
                         value = password,
-                        onValueChange = { password = it; viewModel.clearError() },
+                        onValueChange = {
+                            password = it
+                            viewModel.clearError()
+                        },
                         label = { Text("Password") },
-                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF5B7FFF)) },
+                        leadingIcon = {
+                            Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF8B5CF6))
+                        },
                         trailingIcon = {
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Icon(
                                     imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = if (passwordVisible) "Hide" else "Show",
+                                    contentDescription = if (passwordVisible) "Hide password" else "Show password",
                                     tint = Color.White.copy(alpha = 0.5f),
                                 )
                             }
@@ -275,12 +318,12 @@ fun SignInScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Forgot password
+                    // Forgot password link
                     TextButton(
                         onClick = { navController.navigate(NavRoute.ForgotPassword.route) },
                         modifier = Modifier.align(Alignment.End),
                     ) {
-                        Text("Forgot Password?", color = Color(0xFF5B7FFF), fontSize = 13.sp)
+                        Text("Forgot Password?", color = Color(0xFF43E7D0), fontSize = 13.sp)
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -296,7 +339,7 @@ fun SignInScreen(
                             .fillMaxWidth()
                             .height(50.dp),
                         shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5B7FFF)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
                     ) {
                         if (uiState is SignInUiState.Loading) {
                             CircularProgressIndicator(
@@ -324,7 +367,7 @@ fun SignInScreen(
                         launchSingleTop = true
                     }
                 }) {
-                    Text("Create Account", color = Color(0xFF5B7FFF), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Create Account", color = Color(0xFF43E7D0), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
 
@@ -333,16 +376,14 @@ fun SignInScreen(
     }
 }
 
-// ─── Shared text field colors ──────────────────────────────────────────────────
-
 @Composable
 internal fun authTextFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedTextColor = Color.White,
     unfocusedTextColor = Color.White.copy(alpha = 0.8f),
-    focusedBorderColor = Color(0xFF5B7FFF),
+    focusedBorderColor = Color(0xFF8B5CF6),
     unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
-    cursorColor = Color(0xFF5B7FFF),
-    focusedLabelColor = Color(0xFF5B7FFF),
+    cursorColor = Color(0xFF8B5CF6),
+    focusedLabelColor = Color(0xFF8B5CF6),
     unfocusedLabelColor = Color.White.copy(alpha = 0.5f),
     focusedContainerColor = Color.White.copy(alpha = 0.05f),
     unfocusedContainerColor = Color.White.copy(alpha = 0.05f),

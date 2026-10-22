@@ -5,7 +5,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -14,29 +13,24 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -44,7 +38,9 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.novavault.ui.AuthState
 import com.novavault.ui.NavViewModel
+import com.novavault.ui.components.ElvarixCoreSymbol
 import com.novavault.ui.navigation.NavRoute
+import com.novavault.ui.theme.NovaColors
 import kotlinx.coroutines.delay
 
 private const val SPLASH_MIN_DURATION_MS = 2000L
@@ -56,7 +52,7 @@ fun SplashScreen(
 ) {
     val authState by navViewModel.authState.collectAsState()
 
-    // Shield logo scale + alpha entrance
+    // Elvarix Core scale + alpha entrance
     val logoScale = remember { Animatable(0.6f) }
     val logoAlpha = remember { Animatable(0f) }
 
@@ -78,7 +74,7 @@ fun SplashScreen(
         logoScale.animateTo(1f, tween(600, easing = FastOutSlowInEasing))
         logoAlpha.animateTo(1f, tween(600, easing = FastOutSlowInEasing))
         delay(200)
-        letterAlphas.forEachIndexed { index, anim ->
+        letterAlphas.forEachIndexed { _, anim ->
             anim.animateTo(
                 targetValue = 1f,
                 animationSpec = tween(durationMillis = 120, delayMillis = 0),
@@ -97,47 +93,39 @@ fun SplashScreen(
                     popUpTo(NavRoute.Splash.route) { inclusive = true }
                     launchSingleTop = true
                 }
-
             is AuthState.Unauthenticated ->
                 navController.navigate(NavRoute.SignIn.route) {
                     popUpTo(NavRoute.Splash.route) { inclusive = true }
                     launchSingleTop = true
                 }
-
             is AuthState.NeedsEmailVerification ->
                 navController.navigate(NavRoute.EmailVerification.route) {
                     popUpTo(NavRoute.Splash.route) { inclusive = true }
                     launchSingleTop = true
                 }
-
             is AuthState.NeedsMasterPasswordSetup ->
                 navController.navigate(NavRoute.MasterPasswordSetup.route) {
                     popUpTo(NavRoute.Splash.route) { inclusive = true }
                     launchSingleTop = true
                 }
-
             is AuthState.NeedsVaultUnlock ->
                 navController.navigate(NavRoute.VaultLock.route) {
                     popUpTo(NavRoute.Splash.route) { inclusive = true }
                     launchSingleTop = true
                 }
-
             is AuthState.Authenticated ->
                 navController.navigate(NavRoute.Home.route) {
                     popUpTo(NavRoute.Splash.route) { inclusive = true }
                     launchSingleTop = true
                 }
-
-            else -> Unit
+            is AuthState.Loading -> { /* Handled above */ }
         }
     }
 
-    // ── UI ────────────────────────────────────────────────────────────────────
-
-    val bgColor1 = Color(0xFF0A0A1A)
-    val bgColor2 = Color(0xFF0D1B3E)
-    val aurora1 = Color(0xFF1A3A6B)
-    val aurora2 = Color(0xFF2D1B69)
+    val bgColor1 = Color(0xFF080A14)
+    val bgColor2 = Color(0xFF10162A)
+    val aurora1 = Color(0xFF8B5CF6)
+    val aurora2 = Color(0xFF43E7D0)
 
     Box(
         modifier = Modifier
@@ -147,7 +135,7 @@ fun SplashScreen(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        // Aurora layer
+        // Ambient Aurora layer
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawAurora(auroraOffset, aurora1, aurora2)
         }
@@ -156,30 +144,31 @@ fun SplashScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            // Animated shield / vault logo
+            // The Elvarix Core Symbol with animated glow
             Box(
                 modifier = Modifier
-                    .size(120.dp)
+                    .size(128.dp)
                     .alpha(logoAlpha.value),
                 contentAlignment = Alignment.Center,
             ) {
-                Canvas(modifier = Modifier.size(120.dp)) {
-                    drawShieldLogo(scale = logoScale.value)
-                }
+                ElvarixCoreSymbol(
+                    size = (128 * logoScale.value).dp,
+                    animatedGlow = true,
+                )
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Letter-by-letter title
-            androidx.compose.foundation.layout.Row {
+            // Letter-by-letter ELVARIX title
+            Row {
                 title.forEachIndexed { index, ch ->
                     Text(
                         text = ch.toString(),
                         modifier = Modifier.alpha(letterAlphas[index].value),
                         color = Color.White,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 6.sp,
+                        fontSize = 34.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 8.sp,
                     )
                 }
             }
@@ -187,58 +176,16 @@ fun SplashScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Secure. Private. Yours.",
-                color = Color.White.copy(alpha = 0.6f),
-                fontSize = 13.sp,
+                text = "ZERO-KNOWLEDGE CIPHER VAULT",
+                color = NovaColors.SecondaryAccent,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 4.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.alpha(logoAlpha.value),
             )
         }
     }
-}
-
-// ─── Canvas draw helpers ───────────────────────────────────────────────────────
-
-private fun DrawScope.drawShieldLogo(scale: Float) {
-    val w = size.width * scale
-    val h = size.height * scale
-    val cx = size.width / 2f
-    val cy = size.height / 2f
-
-    val shieldPath = Path().apply {
-        moveTo(cx, cy - h * 0.45f)
-        cubicTo(cx + w * 0.45f, cy - h * 0.45f, cx + w * 0.45f, cy - h * 0.1f, cx, cy + h * 0.45f)
-        cubicTo(cx - w * 0.45f, cy - h * 0.1f, cx - w * 0.45f, cy - h * 0.45f, cx, cy - h * 0.45f)
-        close()
-    }
-
-    val gradient = Brush.radialGradient(
-        colors = listOf(Color(0xFF5B7FFF), Color(0xFF1A2FBB)),
-        center = Offset(cx, cy),
-        radius = size.minDimension / 1.5f,
-    )
-
-    drawPath(
-        path = shieldPath,
-        brush = gradient,
-    )
-
-    // Keyhole circle
-    drawCircle(
-        color = Color.White.copy(alpha = 0.9f),
-        radius = w * 0.12f,
-        center = Offset(cx, cy - h * 0.05f),
-    )
-
-    // Keyhole stem
-    val stemPath = Path().apply {
-        moveTo(cx - w * 0.06f, cy - h * 0.05f)
-        lineTo(cx - w * 0.04f, cy + h * 0.15f)
-        lineTo(cx + w * 0.04f, cy + h * 0.15f)
-        lineTo(cx + w * 0.06f, cy - h * 0.05f)
-        close()
-    }
-    drawPath(path = stemPath, color = Color.White.copy(alpha = 0.9f))
 }
 
 private fun DrawScope.drawAurora(offset: Float, color1: Color, color2: Color) {
@@ -247,7 +194,7 @@ private fun DrawScope.drawAurora(offset: Float, color1: Color, color2: Color) {
 
     drawCircle(
         brush = Brush.radialGradient(
-            colors = listOf(color1.copy(alpha = 0.25f), Color.Transparent),
+            colors = listOf(color1.copy(alpha = 0.22f), Color.Transparent),
             center = Offset(w * (0.2f + offset * 0.3f), h * 0.2f),
             radius = w * 0.7f,
         ),
@@ -257,7 +204,7 @@ private fun DrawScope.drawAurora(offset: Float, color1: Color, color2: Color) {
 
     drawCircle(
         brush = Brush.radialGradient(
-            colors = listOf(color2.copy(alpha = 0.2f), Color.Transparent),
+            colors = listOf(color2.copy(alpha = 0.16f), Color.Transparent),
             center = Offset(w * (0.8f - offset * 0.3f), h * 0.6f),
             radius = w * 0.6f,
         ),

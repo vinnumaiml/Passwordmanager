@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
@@ -38,12 +39,17 @@ class AuthRepositoryImpl @Inject constructor(
 
     private object Keys {
         val LOCAL_USER_EMAIL = stringPreferencesKey("user_email")
+        val LOCAL_USER_NAME = stringPreferencesKey("user_name")
         val LOCAL_USER_ID = stringPreferencesKey("user_id")
         val EMAIL_VERIFIED = stringPreferencesKey("email_verified")
     }
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
     override val authState: Flow<AuthState> = _authState.asStateFlow()
+
+    override val currentUserName: Flow<String> = context.authDataStore.data.map { prefs ->
+        prefs[Keys.LOCAL_USER_NAME] ?: ""
+    }
 
     init {
         scope.launch {
@@ -117,11 +123,19 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    private suspend fun saveSessionToDataStore(userId: String, email: String, isVerified: Boolean) {
+    private suspend fun saveSessionToDataStore(
+        userId: String,
+        email: String,
+        isVerified: Boolean,
+        name: String? = null,
+    ) {
         context.authDataStore.edit { prefs ->
             prefs[Keys.LOCAL_USER_EMAIL] = email
             prefs[Keys.LOCAL_USER_ID] = userId
             prefs[Keys.EMAIL_VERIFIED] = isVerified.toString()
+            if (!name.isNullOrBlank()) {
+                prefs[Keys.LOCAL_USER_NAME] = name
+            }
         }
     }
 
@@ -139,7 +153,7 @@ class AuthRepositoryImpl @Inject constructor(
         return Result.success(Unit)
     }
 
-    override suspend fun signUp(email: String, password: String): Result<Unit> {
+    override suspend fun signUp(email: String, password: String, name: String): Result<Unit> {
         return try {
             var userId: String? = null
             var remoteConfirmed = false
@@ -163,7 +177,7 @@ class AuthRepositoryImpl @Inject constructor(
             }
 
             val finalUserId = userId ?: UUID.randomUUID().toString()
-            saveSessionToDataStore(finalUserId, email, isVerified = remoteConfirmed)
+            saveSessionToDataStore(finalUserId, email, isVerified = remoteConfirmed, name = name.ifBlank { null })
 
             if (remoteConfirmed) {
                 _authState.value = AuthState.Authenticated(finalUserId, email)

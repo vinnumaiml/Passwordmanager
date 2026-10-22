@@ -20,7 +20,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
@@ -36,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -63,6 +63,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.novavault.domain.repository.AuthRepository
+import com.novavault.ui.components.ElvarixCoreSymbol
 import com.novavault.ui.navigation.NavRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -102,6 +103,7 @@ class SignUpViewModel @Inject constructor(
     val uiState: StateFlow<SignUpUiState> = _uiState.asStateFlow()
 
     fun signUp(name: String, email: String, password: String, confirmPassword: String, termsAccepted: Boolean) {
+        if (name.trim().isBlank()) { _uiState.value = SignUpUiState.Error("Please enter your name."); return }
         if (!termsAccepted) { _uiState.value = SignUpUiState.Error("You must accept the Terms of Service."); return }
         if (email.isBlank() || !email.contains("@")) { _uiState.value = SignUpUiState.Error("Please enter a valid email address."); return }
         if (password.length < 8) { _uiState.value = SignUpUiState.Error("Password must be at least 8 characters."); return }
@@ -109,7 +111,7 @@ class SignUpViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = SignUpUiState.Loading
-            val result = authRepository.signUp(email.trim(), password)
+            val result = authRepository.signUp(email.trim(), password, name.trim())
             if (result.isSuccess) {
                 _uiState.value = SignUpUiState.Success
             } else {
@@ -165,7 +167,7 @@ fun SignUpScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Color(0xFF0A0A1A), Color(0xFF0D1B3E))))
+            .background(Brush.verticalGradient(listOf(Color(0xFF080A14), Color(0xFF10162A))))
             .windowInsetsPadding(WindowInsets.systemBars)
             .imePadding(),
         contentAlignment = Alignment.Center,
@@ -179,8 +181,8 @@ fun SignUpScreen(
         ) {
             Spacer(modifier = Modifier.height(48.dp))
 
-            Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF5B7FFF), modifier = Modifier.size(48.dp))
-            Spacer(modifier = Modifier.height(8.dp))
+            ElvarixCoreSymbol(size = 56.dp, animatedGlow = true)
+            Spacer(modifier = Modifier.height(12.dp))
             Text("Create Account", color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Bold)
             Text("Join Elvarix — Sovereign Privacy", color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp)
 
@@ -202,17 +204,17 @@ fun SignUpScreen(
                 shape = RoundedCornerShape(20.dp),
             ) {
                 Column(modifier = Modifier.padding(24.dp)) {
-                    // Name (optional)
+                    // Full Name (Mandatory)
                     OutlinedTextField(
                         value = name,
-                        onValueChange = { name = it },
-                        label = { Text("Name (optional)") },
-                        leadingIcon = { Icon(Icons.Default.Person, null, tint = Color(0xFF5B7FFF)) },
+                        onValueChange = { name = it; viewModel.clearError() },
+                        label = { Text("Full Name *") },
+                        leadingIcon = { Icon(Icons.Default.Person, null, tint = Color(0xFF8B5CF6)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                         keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                        colors = authTextFieldColors(),
+                        colors = signUpTextFieldColors(),
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -221,13 +223,13 @@ fun SignUpScreen(
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it; viewModel.clearError() },
-                        label = { Text("Email") },
-                        leadingIcon = { Icon(Icons.Default.Email, null, tint = Color(0xFF5B7FFF)) },
+                        label = { Text("Email *") },
+                        leadingIcon = { Icon(Icons.Default.Email, null, tint = Color(0xFF8B5CF6)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
                         keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                        colors = authTextFieldColors(),
+                        colors = signUpTextFieldColors(),
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -236,8 +238,8 @@ fun SignUpScreen(
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it; viewModel.clearError() },
-                        label = { Text("Password") },
-                        leadingIcon = { Icon(Icons.Default.Lock, null, tint = Color(0xFF5B7FFF)) },
+                        label = { Text("Password *") },
+                        leadingIcon = { Icon(Icons.Default.Lock, null, tint = Color(0xFF8B5CF6)) },
                         trailingIcon = {
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Icon(if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, null, tint = Color.White.copy(alpha = 0.5f))
@@ -248,7 +250,7 @@ fun SignUpScreen(
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
                         keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-                        colors = authTextFieldColors(),
+                        colors = signUpTextFieldColors(),
                     )
 
                     // Strength indicator
@@ -269,8 +271,8 @@ fun SignUpScreen(
                     OutlinedTextField(
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it; viewModel.clearError() },
-                        label = { Text("Confirm Password") },
-                        leadingIcon = { Icon(Icons.Default.Lock, null, tint = Color(0xFF5B7FFF)) },
+                        label = { Text("Confirm Password *") },
+                        leadingIcon = { Icon(Icons.Default.Lock, null, tint = Color(0xFF8B5CF6)) },
                         trailingIcon = {
                             IconButton(onClick = { confirmVisible = !confirmVisible }) {
                                 Icon(if (confirmVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, null, tint = Color.White.copy(alpha = 0.5f))
@@ -281,7 +283,7 @@ fun SignUpScreen(
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { keyboardController?.hide() }),
-                        colors = authTextFieldColors(),
+                        colors = signUpTextFieldColors(),
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -302,7 +304,7 @@ fun SignUpScreen(
                         enabled = uiState !is SignUpUiState.Loading,
                         modifier = Modifier.fillMaxWidth().height(50.dp),
                         shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5B7FFF)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
                     ) {
                         if (uiState is SignUpUiState.Loading) {
                             CircularProgressIndicator(modifier = Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)
@@ -318,7 +320,7 @@ fun SignUpScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Already have an account? ", color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp)
                 TextButton(onClick = { navController.navigateUp() }) {
-                    Text("Sign In", color = Color(0xFF5B7FFF), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Sign In", color = Color(0xFF43E7D0), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
 
@@ -326,3 +328,14 @@ fun SignUpScreen(
         }
     }
 }
+
+@Composable
+private fun signUpTextFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = Color.White,
+    unfocusedTextColor = Color.White,
+    focusedBorderColor = Color(0xFF8B5CF6),
+    unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
+    focusedLabelColor = Color(0xFF8B5CF6),
+    unfocusedLabelColor = Color.White.copy(alpha = 0.6f),
+    cursorColor = Color(0xFF8B5CF6),
+)

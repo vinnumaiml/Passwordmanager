@@ -1,15 +1,53 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
+    <!-- Primary Geometric 'E' Outer Orbital Ribbon -->
+    <path android:pathData="M68.1,37.6 L45.1,37.6 L38.5,44.2 L38.5,63.8 L45.1,70.4 L68.1,70.4 L70.9,66.2 L47.9,66.2 L43.7,62.0 L43.7,46.0 L47.9,41.8 L70.9,41.8 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="38.5"
+                android:startY="37.6"
+                android:endX="70.9"
+                android:endY="70.4"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#8B5CF6" />
+                <item android:offset="0.55" android:color="#6366F1" />
+                <item android:offset="1.0" android:color="#43E7D0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Precision Chamfer Top-Right Cap -->
     <path
-        android:fillColor="#8B5CF6"
-        android:pathData="M54,24 L82,37 C82,72 54,94 54,94 C54,94 26,72 26,37 Z" />
+        android:fillColor="#4DFFFFFF"
+        android:pathData="M68.1,37.6 L70.9,41.8 L69.0,41.8 L66.2,37.6 Z" />
+
+    <!-- Central Cryptographic Core Tongue -->
+    <path android:pathData="M43.2,51.2 L62.0,51.2 L65.7,54.0 L62.0,56.8 L43.2,56.8 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="43.2"
+                android:startY="51.2"
+                android:endX="65.7"
+                android:endY="56.8"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#8B5CF6" />
+                <item android:offset="1.0" android:color="#43E7D0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Negative Space Keyway Slot Aperture -->
     <path
-        android:fillColor="#11182A"
-        android:pathData="M54,28 L78,39 C78,69 54,89 54,89 C54,89 30,69 30,39 Z" />
+        android:fillColor="#080A14"
+        android:pathData="M55.6,53.0 C55.0,53.0 54.5,53.4 54.5,54.0 C54.5,54.3 54.7,54.6 55.0,54.8 L54.7,55.5 L56.5,55.5 L56.2,54.8 C56.5,54.6 56.7,54.3 56.7,54.0 C56.7,53.4 56.2,53.0 55.6,53.0 Z" />
+
+    <!-- Interlocking Orbital Protective Ribbon (Electric Cyan Accent) -->
     <path
-        android:fillColor="#45E5D1"
-        android:pathData="M54,46 A6,6 0 0,0 48,52 C48,54.6 49.7,56.8 52.1,57.6 L51,68 L57,68 L55.9,57.6 C58.3,56.8 60,54.6 60,52 A6,6 0 0,0 54,46 Z" />
+        android:fillColor="#43E7D0"
+        android:pathData="M70.9,45.1 L66.7,49.3 L66.7,58.7 L70.9,62.9 L73.2,59.6 L70.4,56.8 L70.4,51.2 L73.2,48.4 Z" />
 </vector>

@@ -2,8 +2,8 @@
   "versionCode": 2,
   "versionName": "1.1.0",
   "apkUrl": "https://github.com/vinnumaiml/Passwordmanager/releases/latest/download/Elvarix.apk",
-  "sha256": "c4cab949d958047a4ce0ad43b01551f33b19f0283e56beb6b82db2a35f94793e",
-  "releaseNotes": "Elvarix v1.1.0: Sovereign offline vault mode, authoritative email verification, enhanced Home dashboard with creation FAB, and secure in-app update system.",
+  "sha256": "055d78eb98010a7b0922dc2f9b35195384e8d460a9b2968bcb9ead4d10d6c514",
+  "releaseNotes": "Elvarix v1.1.0: Premium Elvarix Core branding, personalized home screen greeting by user name, mandatory registration name field, and recovery-key-driven master password reset system.",
   "mandatory": false,
   "minVersionCode": 1
 }

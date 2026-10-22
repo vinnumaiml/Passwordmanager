@@ -64,6 +64,7 @@ import androidx.navigation.NavController
 import com.novavault.domain.model.UpdateCheckState
 import com.novavault.domain.model.VaultItem
 import com.novavault.domain.model.VaultItemType
+import com.novavault.domain.repository.AuthRepository
 import com.novavault.domain.repository.VaultRepository
 import com.novavault.domain.usecase.vault.GeneratePasswordUseCase
 import com.novavault.domain.usecase.vault.PasswordStrength
@@ -86,8 +87,12 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val vaultRepository: VaultRepository,
+    private val authRepository: AuthRepository,
     private val passwordUseCase: GeneratePasswordUseCase,
 ) : ViewModel() {
+
+    val userName: StateFlow<String> = authRepository.currentUserName
+        .stateIn(viewModelScope, SharingStarted.Lazily, "")
 
     val items: StateFlow<List<VaultItem>> = vaultRepository.observeItems()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
@@ -137,6 +142,7 @@ fun HomeScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val userName by viewModel.userName.collectAsState()
     val items by viewModel.items.collectAsState()
     val favorites by viewModel.favorites.collectAsState()
     val recentItems by viewModel.recentItems.collectAsState()
@@ -147,6 +153,8 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         updateViewModel.checkForUpdates(force = false)
     }
+
+    val greetingName = if (userName.isNotBlank()) userName else "User"
 
     AuroraBackground {
         LazyColumn(
@@ -175,7 +183,7 @@ fun HomeScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "${getPersonalizedGreeting()}, Sovereign Vault",
+                            text = "${getPersonalizedGreeting()}, $greetingName",
                             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                             color = NovaColors.TextPrimary,
                         )

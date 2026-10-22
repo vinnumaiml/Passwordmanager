@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+    <defs>
+        <linearGradient id="favGrad" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#8B5CF6"/>
+            <stop offset="55%" stop-color="#6366F1"/>
+            <stop offset="100%" stop-color="#43E7D0"/>
+        </linearGradient>
+    </defs>
+    <rect width="64" height="64" rx="14" fill="#080A14"/>
+    <!-- Outer Orbital E Spine & Flanges -->
+    <path d="M 47 14 L 22 14 L 15 21 L 15 43 L 22 50 L 47 50 L 50 45 L 25 45 L 20 40 L 20 24 L 25 19 L 50 19 Z" fill="url(#favGrad)"/>
+    <!-- Central Core Tongue with Keyway Aperture -->
+    <path d="M 20 29 L 40 29 L 44 32 L 40 35 L 20 35 Z" fill="url(#favGrad)"/>
+    <circle cx="33" cy="32" r="2.2" fill="#080A14"/>
+    <!-- Interlocking Cyan Orbital Cap -->
+    <path d="M 49 22 L 45 26 L 45 38 L 49 42 L 52 39 L 48 35 L 48 29 L 52 25 Z" fill="#43E7D0"/>
+</svg>

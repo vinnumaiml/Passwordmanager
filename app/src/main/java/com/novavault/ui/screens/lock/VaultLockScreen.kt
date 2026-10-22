@@ -13,13 +13,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockReset
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -34,9 +39,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -66,9 +74,14 @@ class VaultLockViewModel @Inject constructor(
     var isUnlocking by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
     var isBiometricEnabled by mutableStateOf(false)
+
+    // Reset with Recovery Key state
     var showRecoveryDialog by mutableStateOf(false)
     var recoveryKeyInput by mutableStateOf("")
+    var newPasswordInput by mutableStateOf("")
+    var confirmPasswordInput by mutableStateOf("")
     var recoveryError by mutableStateOf<String?>(null)
+    var isResetting by mutableStateOf(false)
 
     init {
         viewModelScope.launch {
@@ -93,23 +106,37 @@ class VaultLockViewModel @Inject constructor(
         }
     }
 
-    fun unlockWithRecoveryKey(onSuccess: () -> Unit) {
-        val parsed = recoveryKeyUseCase.parseFromDisplay(recoveryKeyInput)
+    fun resetMasterPasswordWithRecovery(onSuccess: () -> Unit) {
+        val parsed = recoveryKeyUseCase.parseFromDisplay(recoveryKeyInput.trim())
         if (parsed == null) {
-            recoveryError = "Invalid recovery key format. Please enter the 64-character hex key."
+            recoveryError = "Invalid recovery key format. Please enter your 64-character hex key."
             return
         }
-        isUnlocking = true
+        if (newPasswordInput.length < 8) {
+            recoveryError = "New Master Password must be at least 8 characters long."
+            return
+        }
+        if (newPasswordInput != confirmPasswordInput) {
+            recoveryError = "New passwords do not match."
+            return
+        }
+
+        isResetting = true
         recoveryError = null
         viewModelScope.launch {
-            val result = vaultRepository.unlockWithRecoveryKey(parsed)
-            isUnlocking = false
+            val result = vaultRepository.resetMasterPasswordWithRecoveryKey(
+                recoveryKey = parsed,
+                newMasterPassword = newPasswordInput.toCharArray(),
+            )
+            isResetting = false
             if (result.isSuccess) {
                 showRecoveryDialog = false
                 recoveryKeyInput = ""
+                newPasswordInput = ""
+                confirmPasswordInput = ""
                 onSuccess()
             } else {
-                recoveryError = "Failed to unlock with this recovery key."
+                recoveryError = result.exceptionOrNull()?.message ?: "Failed to reset Master Password with this Recovery Key."
             }
         }
     }
@@ -226,19 +253,20 @@ fun VaultLockScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Forgot Master Password? Reset with Recovery Key (Not casual bypass unlock)
             TextButton(onClick = { viewModel.showRecoveryDialog = true }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.VpnKey,
+                        imageVector = Icons.Default.LockReset,
                         contentDescription = null,
                         tint = NovaColors.TextSecondary,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(18.dp),
                     )
-                    Spacer(modifier = Modifier.size(6.dp))
+                    Spacer(modifier = Modifier.size(8.dp))
                     Text(
-                        text = "Unlock with Recovery Key",
-                        color = NovaColors.TextSecondary,
-                        style = MaterialTheme.typography.bodySmall,
+                        text = "Forgot Master Password? Reset with Recovery Key",
+                        color = NovaColors.SecondaryAccent,
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                     )
                 }
             }
@@ -247,44 +275,100 @@ fun VaultLockScreen(
 
     if (viewModel.showRecoveryDialog) {
         AlertDialog(
-            onDismissRequest = { viewModel.showRecoveryDialog = false },
-            title = { Text("Emergency Recovery Key") },
+            onDismissRequest = { if (!viewModel.isResetting) viewModel.showRecoveryDialog = false },
+            containerColor = Color(0xFF10162A),
+            titleContentColor = Color.White,
+            textContentColor = NovaColors.TextSecondary,
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.VpnKey, contentDescription = null, tint = NovaColors.SecondaryAccent)
+                    Spacer(modifier = Modifier.size(10.dp))
+                    Text("Reset Master Password", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                }
+            },
             text = {
-                Column {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                     Text(
-                        "Paste or type your 64-character emergency recovery key:",
+                        text = "The recovery key is only used to establish a new Master Password when forgotten. Direct bypass unlock is disabled for zero-knowledge safety.",
                         style = MaterialTheme.typography.bodySmall,
                         color = NovaColors.TextSecondary,
                     )
+
                     Spacer(modifier = Modifier.height(12.dp))
+
+                    if (viewModel.recoveryError != null) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFB00020).copy(alpha = 0.2f)),
+                            shape = RoundedCornerShape(8.dp),
+                        ) {
+                            Text(
+                                text = viewModel.recoveryError.orEmpty(),
+                                color = Color(0xFFFF6B6B),
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(10.dp),
+                            )
+                        }
+                    }
+
                     NovaTextField(
                         value = viewModel.recoveryKeyInput,
                         onValueChange = {
                             viewModel.recoveryKeyInput = it
                             viewModel.recoveryError = null
                         },
-                        label = "Recovery Key",
-                        isError = viewModel.recoveryError != null,
-                        errorMessage = viewModel.recoveryError,
+                        label = "Emergency Recovery Key",
+                        singleLine = false,
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    NovaTextField(
+                        value = viewModel.newPasswordInput,
+                        onValueChange = {
+                            viewModel.newPasswordInput = it
+                            viewModel.recoveryError = null
+                        },
+                        label = "New Master Password",
+                        isPassword = true,
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    NovaTextField(
+                        value = viewModel.confirmPasswordInput,
+                        onValueChange = {
+                            viewModel.confirmPasswordInput = it
+                            viewModel.recoveryError = null
+                        },
+                        label = "Confirm New Password",
+                        isPassword = true,
                     )
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.unlockWithRecoveryKey {
+                        viewModel.resetMasterPasswordWithRecovery {
                             navController.navigate(NavRoute.Home.route) {
                                 popUpTo(NavRoute.VaultLock.route) { inclusive = true }
                             }
                         }
-                    }
+                    },
+                    enabled = !viewModel.isResetting &&
+                            viewModel.recoveryKeyInput.isNotBlank() &&
+                            viewModel.newPasswordInput.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(containerColor = NovaColors.PrimaryAccent),
                 ) {
-                    Text("Unlock")
+                    Text(if (viewModel.isResetting) "Resetting..." else "Reset & Unlock")
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = { viewModel.showRecoveryDialog = false }) {
-                    Text("Cancel")
+                OutlinedButton(
+                    onClick = { viewModel.showRecoveryDialog = false },
+                    enabled = !viewModel.isResetting,
+                ) {
+                    Text("Cancel", color = NovaColors.TextSecondary)
                 }
             },
         )

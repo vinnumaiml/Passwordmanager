@@ -212,6 +212,81 @@ class VaultRepositoryImpl @Inject constructor(
             }
         }
 
+    override suspend fun resetMasterPasswordWithRecoveryKey(
+        recoveryKey: ByteArray,
+        newMasterPassword: CharArray,
+    ): Result<Unit> = withContext(Dispatchers.Default) {
+        mutex.withLock {
+            try {
+                val envelopeEntity = vaultKeyDao.getEnvelope(activeUserId)
+                    ?: return@withLock Result.failure(IllegalStateException("Vault not set up"))
+
+                val envelope = json.decodeFromString<VaultKeyEnvelope>(envelopeEntity.envelopeJson)
+                val recoveryBlob = envelope.encryptedRecovery
+                    ?: return@withLock Result.failure(IllegalStateException("No recovery key configured"))
+                val recoveryParams = envelope.recoveryKdfParams
+                    ?: return@withLock Result.failure(IllegalStateException("No recovery KDF params"))
+
+                // 1. Recover DEK using recovery key
+                val recoverySalt = java.util.Base64.getDecoder().decode(recoveryParams.saltBase64)
+                val recoveryKek = cryptoEngine.deriveKek(
+                    recoveryKey.toHex().toCharArray(),
+                    recoverySalt,
+                    recoveryParams,
+                )
+
+                val dek = try {
+                    cryptoEngine.decryptWithKek(recoveryBlob, recoveryKek)
+                } finally {
+                    cryptoEngine.wipeKey(recoveryKek)
+                }
+
+                // 2. Derive new KEK from new master password
+                val newSalt = cryptoEngine.generateSalt()
+                val newKdfParams = KdfParams(
+                    algorithm = CryptoConstants.KDF_ALGORITHM,
+                    version = CryptoConstants.KDF_VERSION,
+                    memoryKib = CryptoConstants.ARGON2_MEMORY_KIB,
+                    iterations = CryptoConstants.ARGON2_ITERATIONS,
+                    parallelism = CryptoConstants.ARGON2_PARALLELISM,
+                    hashLen = CryptoConstants.ARGON2_HASH_LEN,
+                    saltBase64 = newSalt.toBase64(),
+                )
+
+                val newKek = cryptoEngine.deriveKek(newMasterPassword, newSalt, newKdfParams)
+                val newEncryptedDek = cryptoEngine.encryptWithKek(dek, newKek)
+
+                cryptoEngine.wipeKey(newKek)
+                cryptoEngine.wipePassword(newMasterPassword)
+
+                // 3. Update envelope with new master password KEK envelope
+                val updatedEnvelope = envelope.copy(
+                    kdfParams = newKdfParams,
+                    encryptedDek = newEncryptedDek,
+                )
+                val updatedJson = json.encodeToString(updatedEnvelope)
+                val now = System.currentTimeMillis()
+                vaultKeyDao.upsert(
+                    VaultKeyEnvelopeEntity(
+                        userId = activeUserId,
+                        envelopeJson = updatedJson,
+                        createdAt = envelopeEntity.createdAt,
+                        updatedAt = now,
+                    )
+                )
+
+                // 4. Cache DEK in memory and mark vault Unlocked
+                val oldDek = dekRef.getAndSet(dek)
+                oldDek?.let { cryptoEngine.wipeKey(it) }
+                _vaultState.value = VaultState.Unlocked
+
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(Exception("Failed to reset Master Password with Recovery Key: ${e.message}", e))
+            }
+        }
+    }
+
     override suspend fun lockVault() {
         mutex.withLock {
             val dek = dekRef.getAndSet(null)
