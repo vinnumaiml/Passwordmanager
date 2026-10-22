@@ -179,3 +179,9 @@ dependencies {
     androidTestImplementation(libs.mockk.android)
     androidTestImplementation(libs.truth)
 }
+
+
+tasks.withType<Test> {
+    reports.html.required.set(false)
+    reports.junitXml.required.set(false)
+}

@@ -65,6 +65,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -76,6 +77,10 @@ class VaultViewModel @Inject constructor(
 
     val searchQuery = MutableStateFlow("")
     val selectedType = MutableStateFlow<VaultItemType?>(null)
+
+    val isVaultLocked: StateFlow<Boolean> = vaultRepository.vaultState.map {
+        it is com.novavault.domain.model.VaultState.Locked
+    }.stateIn(viewModelScope, SharingStarted.Lazily, false)
 
     private val allItems = vaultRepository.observeItems()
 
@@ -109,6 +114,7 @@ fun VaultScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val isVaultLocked by viewModel.isVaultLocked.collectAsState()
     val filteredItems by viewModel.filteredItems.collectAsState()
     val query by viewModel.searchQuery.collectAsState()
     val selectedType by viewModel.selectedType.collectAsState()
@@ -199,19 +205,42 @@ fun VaultScreen(
                         .weight(1f),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(24.dp),
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Lock,
                             contentDescription = null,
-                            tint = NovaColors.TextHint,
+                            tint = if (isVaultLocked) NovaColors.Warning else NovaColors.TextHint,
                             modifier = Modifier.size(56.dp),
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
                         Text(
-                            text = if (query.isNotBlank()) "No matching records found" else "No items in this category",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = NovaColors.TextSecondary,
+                            text = if (isVaultLocked) "Vault is Locked"
+                            else if (query.isNotBlank()) "No matching records found"
+                            else "No items in this category",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = NovaColors.TextPrimary,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                         )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = if (isVaultLocked) "Unlock your vault with Master Password or biometric authentication to access and manage your records."
+                            else "Tap + below to add your first record.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = NovaColors.TextSecondary,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        )
+                        if (isVaultLocked) {
+                            Spacer(modifier = Modifier.height(18.dp))
+                            androidx.compose.material3.Button(
+                                onClick = { navController.navigate(NavRoute.VaultLock.route) },
+                                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = NovaColors.PrimaryAccent),
+                            ) {
+                                Text("Unlock Vault")
+                            }
+                        }
                     }
                 }
             } else {

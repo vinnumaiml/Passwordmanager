@@ -44,12 +44,13 @@ object AppModule {
         @ApplicationContext context: Context,
         cryptoEngine: CryptoEngine,
         keystoreManager: KeystoreManager,
+        settingsRepository: SettingsRepository,
         vaultItemDao: VaultItemDao,
         vaultKeyDao: VaultKeyDao,
         folderDao: FolderDao,
         json: Json,
     ): VaultRepository = VaultRepositoryImpl(
-        context, cryptoEngine, keystoreManager, vaultItemDao, vaultKeyDao, folderDao, json
+        context, cryptoEngine, keystoreManager, settingsRepository, vaultItemDao, vaultKeyDao, folderDao, json
     )
 
     @Provides

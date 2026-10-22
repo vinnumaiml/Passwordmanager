@@ -45,6 +45,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -93,6 +94,10 @@ class HomeViewModel @Inject constructor(
 
     val userName: StateFlow<String> = authRepository.currentUserName
         .stateIn(viewModelScope, SharingStarted.Lazily, "")
+
+    val isVaultLocked: StateFlow<Boolean> = vaultRepository.vaultState.map {
+        it is com.novavault.domain.model.VaultState.Locked
+    }.stateIn(viewModelScope, SharingStarted.Lazily, false)
 
     val items: StateFlow<List<VaultItem>> = vaultRepository.observeItems()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
@@ -143,6 +148,7 @@ fun HomeScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val userName by viewModel.userName.collectAsState()
+    val isVaultLocked by viewModel.isVaultLocked.collectAsState()
     val items by viewModel.items.collectAsState()
     val favorites by viewModel.favorites.collectAsState()
     val recentItems by viewModel.recentItems.collectAsState()
@@ -258,6 +264,52 @@ fun HomeScreen(
                 }
             }
 
+            // Vault Locked Banner (if vault locked in background)
+            if (isVaultLocked) {
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color(0xFFB00020).copy(alpha = 0.25f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFF6B6B).copy(alpha = 0.6f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 6.dp)
+                            .clickable { navController.navigate(NavRoute.VaultLock.route) },
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = Color(0xFFFF6B6B),
+                                modifier = Modifier.size(24.dp),
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Vault is Locked",
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = NovaColors.TextPrimary,
+                                )
+                                Text(
+                                    text = "Tap to unlock and decrypt your credentials",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = NovaColors.TextSecondary,
+                                )
+                            }
+                            Text(
+                                text = "Unlock",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = NovaColors.SecondaryAccent,
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+            }
+
             // Search bar
             item {
                 Box(
@@ -355,35 +407,50 @@ fun HomeScreen(
                             QuickActionPill(
                                 icon = Icons.Default.Key,
                                 label = "Add Login",
-                                onClick = { navController.navigate(NavRoute.AddItem.createRoute("LOGIN")) },
+                                onClick = {
+                                    if (isVaultLocked) navController.navigate(NavRoute.VaultLock.route)
+                                    else navController.navigate(NavRoute.AddItem.createRoute("LOGIN"))
+                                },
                             )
                         }
                         item {
                             QuickActionPill(
                                 icon = Icons.Default.Description,
                                 label = "Add Note",
-                                onClick = { navController.navigate(NavRoute.AddItem.createRoute("SECURE_NOTE")) },
+                                onClick = {
+                                    if (isVaultLocked) navController.navigate(NavRoute.VaultLock.route)
+                                    else navController.navigate(NavRoute.AddItem.createRoute("SECURE_NOTE"))
+                                },
                             )
                         }
                         item {
                             QuickActionPill(
                                 icon = Icons.Default.CreditCard,
                                 label = "Add Card",
-                                onClick = { navController.navigate(NavRoute.AddItem.createRoute("PAYMENT_CARD")) },
+                                onClick = {
+                                    if (isVaultLocked) navController.navigate(NavRoute.VaultLock.route)
+                                    else navController.navigate(NavRoute.AddItem.createRoute("PAYMENT_CARD"))
+                                },
                             )
                         }
                         item {
                             QuickActionPill(
                                 icon = Icons.Default.Person,
                                 label = "Add Identity",
-                                onClick = { navController.navigate(NavRoute.AddItem.createRoute("IDENTITY")) },
+                                onClick = {
+                                    if (isVaultLocked) navController.navigate(NavRoute.VaultLock.route)
+                                    else navController.navigate(NavRoute.AddItem.createRoute("IDENTITY"))
+                                },
                             )
                         }
                         item {
                             QuickActionPill(
                                 icon = Icons.Default.Wifi,
                                 label = "Add Wi-Fi",
-                                onClick = { navController.navigate(NavRoute.AddItem.createRoute("WIFI_CREDENTIAL")) },
+                                onClick = {
+                                    if (isVaultLocked) navController.navigate(NavRoute.VaultLock.route)
+                                    else navController.navigate(NavRoute.AddItem.createRoute("WIFI_CREDENTIAL"))
+                                },
                             )
                         }
                         item {

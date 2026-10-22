@@ -67,15 +67,20 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
+import androidx.fragment.app.FragmentActivity
+import androidx.biometric.BiometricPrompt
+import com.novavault.crypto.KeystoreManager
 import com.novavault.domain.repository.AppSettings
 import com.novavault.domain.repository.AuthRepository
 import com.novavault.domain.repository.SettingsRepository
 import com.novavault.domain.repository.VaultRepository
+import com.novavault.ui.LocalBiometricPromptManager
 import com.novavault.ui.components.NovaButton
 import com.novavault.ui.components.NovaDangerButton
 import com.novavault.ui.navigation.NavRoute
 import com.novavault.ui.theme.AuroraBackground
 import com.novavault.ui.theme.NovaColors
+import com.novavault.util.BiometricPromptManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -88,10 +93,33 @@ class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val authRepository: AuthRepository,
     private val vaultRepository: VaultRepository,
+    private val keystoreManager: KeystoreManager,
 ) : ViewModel() {
 
     val settings: StateFlow<AppSettings> = settingsRepository.settings
         .stateIn(viewModelScope, SharingStarted.Lazily, AppSettings())
+
+    fun isVaultUnlocked(): Boolean = vaultRepository.isUnlocked()
+
+    fun prepareEncryptCipher(): javax.crypto.Cipher? {
+        return try {
+            keystoreManager.getCipherForEncrypt()
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun enrollBiometrics(cryptoObject: BiometricPrompt.CryptoObject) {
+        viewModelScope.launch {
+            vaultRepository.setupBiometricUnlock(cryptoObject)
+        }
+    }
+
+    fun disableBiometrics() {
+        viewModelScope.launch {
+            vaultRepository.disableBiometricUnlock()
+        }
+    }
 
     fun updateSettings(newSettings: AppSettings) {
         viewModelScope.launch {
@@ -130,6 +158,7 @@ fun SettingsScreen(
     updateViewModel: UpdateViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val biometricPromptManager = LocalBiometricPromptManager.current
     val settings by viewModel.settings.collectAsState()
     val updateCheckState by updateViewModel.checkState.collectAsState()
     var showSignOutDialog by remember { mutableStateOf(false) }
@@ -163,10 +192,28 @@ fun SettingsScreen(
                     SettingsSwitchRow(
                         icon = Icons.Default.Fingerprint,
                         title = "Biometric Unlock",
-                        subtitle = "Hardware-backed fingerprint / face unlock",
+                        subtitle = "Hardware-backed fingerprint unlock",
                         checked = settings.biometricUnlockEnabled,
-                        onCheckedChange = {
-                            viewModel.updateSettings(settings.copy(biometricUnlockEnabled = it))
+                        onCheckedChange = { enabled ->
+                            if (enabled) {
+                                if (context is FragmentActivity && biometricPromptManager.canAuthenticate() && viewModel.isVaultUnlocked()) {
+                                    val cipher = viewModel.prepareEncryptCipher()
+                                    if (cipher != null) {
+                                        biometricPromptManager.prompt(
+                                            activity = context,
+                                            title = "Enroll Biometrics",
+                                            subtitle = "Scan fingerprint to authorize hardware key",
+                                            cryptoObject = BiometricPrompt.CryptoObject(cipher),
+                                        ) { result ->
+                                            if (result is BiometricPromptManager.BiometricResult.Success && result.cryptoObject != null) {
+                                                viewModel.enrollBiometrics(result.cryptoObject)
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                viewModel.disableBiometrics()
+                            }
                         },
                     )
 

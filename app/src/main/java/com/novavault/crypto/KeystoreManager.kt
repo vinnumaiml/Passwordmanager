@@ -14,11 +14,11 @@ import javax.inject.Singleton
 
 /**
  * Manages Android Keystore-backed AES-256 keys used to wrap/unwrap the DEK
- * via biometric or device-credential authentication.
+ * via biometric authentication.
  *
  * Key characteristics:
  *  - AES/GCM/NoPadding, 256-bit
- *  - Requires BIOMETRIC_STRONG or device credential (PIN/pattern/password)
+ *  - Requires BIOMETRIC_STRONG
  *  - invalidatedByBiometricEnrollment = true for security on biometric changes
  *  - Auth timeout = 0 (per-use; fresh auth required for every crypto operation)
  */
@@ -28,6 +28,16 @@ class KeystoreManager @Inject constructor() {
     // ──────────────────────────────────────────────────────────────────────────
     // Key lifecycle
     // ──────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Check if a Keystore-backed key already exists.
+     */
+    fun hasBiometricKey(): Boolean {
+        return runCatching {
+            val keyStore = loadKeyStore()
+            keyStore.containsAlias(CryptoConstants.KEYSTORE_ALIAS_BIOMETRIC)
+        }.getOrDefault(false)
+    }
 
     /**
      * Retrieve the Keystore-backed [SecretKey] if it exists, or generate a new one.
@@ -136,7 +146,7 @@ class KeystoreManager @Inject constructor() {
         Cipher.getInstance("AES/GCM/NoPadding")
 
     private fun generateBiometricKey(): SecretKey {
-        val keyGenSpec = KeyGenParameterSpec.Builder(
+        val builder = KeyGenParameterSpec.Builder(
             CryptoConstants.KEYSTORE_ALIAS_BIOMETRIC,
             KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
         )
@@ -144,21 +154,20 @@ class KeystoreManager @Inject constructor() {
             .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
             .setKeySize(CryptoConstants.AES_KEY_BITS)
             .setUserAuthenticationRequired(true)
-            // timeout = 0 means the key requires fresh auth for every use
+            // Auth timeout 0 requires fresh biometric authentication for every crypto operation
             .setUserAuthenticationParameters(
                 0,
-                KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL,
+                KeyProperties.AUTH_BIOMETRIC_STRONG,
             )
             // Invalidate the key if the user enrolls new biometrics — prevents
             // an attacker who adds their fingerprint from accessing the vault.
             .setInvalidatedByBiometricEnrollment(true)
-            .build()
 
         val keyGenerator = KeyGenerator.getInstance(
             KeyProperties.KEY_ALGORITHM_AES,
             CryptoConstants.KEYSTORE_PROVIDER,
         )
-        keyGenerator.init(keyGenSpec)
+        keyGenerator.init(builder.build())
         return keyGenerator.generateKey()
     }
 }

@@ -138,18 +138,29 @@ fun NovaVaultNavGraph(
 
             is AuthState.NeedsVaultUnlock -> {
                 if (vaultState is VaultState.Locked) {
-                    navController.navigate(NavRoute.VaultLock.route) {
-                        popUpTo(NavRoute.Home.route) { inclusive = false }
-                        launchSingleTop = true
+                    val current = navController.currentDestination?.route
+                    if (current != NavRoute.VaultLock.route) {
+                        navController.navigate(NavRoute.VaultLock.route) {
+                            launchSingleTop = true
+                        }
                     }
                 }
             }
 
             is AuthState.Authenticated -> {
                 if (vaultState is VaultState.Unlocked) {
-                    navController.navigate(NavRoute.Home.route) {
-                        popUpTo(0) { inclusive = true }
-                        launchSingleTop = true
+                    val current = navController.currentDestination?.route
+                    if (current in setOf(
+                        NavRoute.Splash.route,
+                        NavRoute.SignIn.route,
+                        NavRoute.SignUp.route,
+                        NavRoute.Onboarding.route,
+                        NavRoute.VaultLock.route,
+                    )) {
+                        navController.navigate(NavRoute.Home.route) {
+                            popUpTo(0) { inclusive = true }
+                            launchSingleTop = true
+                        }
                     }
                 }
             }
@@ -168,7 +179,11 @@ fun NovaVaultNavGraph(
             onDismissRequest = { showQuickAddSheet = false },
             onSelectType = { type ->
                 showQuickAddSheet = false
-                navController.navigate(NavRoute.AddItem.createRoute(type))
+                if (vaultState is VaultState.Locked) {
+                    navController.navigate(NavRoute.VaultLock.route)
+                } else {
+                    navController.navigate(NavRoute.AddItem.createRoute(type))
+                }
             },
         )
     }

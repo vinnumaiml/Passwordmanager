@@ -1,6 +1,7 @@
 package com.novavault.data.repository
 
 import android.content.Context
+import androidx.biometric.BiometricPrompt
 import com.novavault.crypto.CryptoConstants
 import com.novavault.crypto.CryptoEngine
 import com.novavault.crypto.EncryptedBlob
@@ -16,8 +17,10 @@ import com.novavault.data.local.entity.VaultKeyEnvelopeEntity
 import com.novavault.domain.model.Folder
 import com.novavault.domain.model.VaultItem
 import com.novavault.domain.model.VaultState
+import com.novavault.domain.repository.SettingsRepository
 import com.novavault.domain.repository.SyncStatus
 import com.novavault.domain.repository.VaultRepository
+import com.novavault.util.fromBase64
 import com.novavault.util.toBase64
 import com.novavault.util.toHex
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -44,6 +47,7 @@ class VaultRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val cryptoEngine: CryptoEngine,
     private val keystoreManager: KeystoreManager,
+    private val settingsRepository: SettingsRepository,
     private val vaultItemDao: VaultItemDao,
     private val vaultKeyDao: VaultKeyDao,
     private val folderDao: FolderDao,
@@ -78,6 +82,8 @@ class VaultRepositoryImpl @Inject constructor(
     }
 
     override fun isUnlocked(): Boolean = dekRef.get() != null
+
+    override fun canSetupBiometric(): Boolean = isUnlocked()
 
     override suspend fun setupMasterPassword(
         masterPassword: CharArray,
@@ -286,6 +292,78 @@ class VaultRepositoryImpl @Inject constructor(
             }
         }
     }
+
+    override suspend fun setupBiometricUnlock(cryptoObject: BiometricPrompt.CryptoObject): Result<Unit> =
+        withContext(Dispatchers.Default) {
+            mutex.withLock {
+                try {
+                    val dek = dekRef.get()
+                        ?: return@withLock Result.failure(IllegalStateException("Vault must be unlocked to configure biometric unlock"))
+
+                    val wrappedDek = keystoreManager.wrapDek(dek, cryptoObject)
+                    val iv = cryptoObject.cipher?.iv
+                        ?: return@withLock Result.failure(IllegalStateException("Cipher IV not available from biometric prompt"))
+
+                    val currentSettings = settingsRepository.getSettings()
+                    settingsRepository.updateSettings(
+                        currentSettings.copy(
+                            biometricUnlockEnabled = true,
+                            wrappedDekBase64 = wrappedDek.toBase64(),
+                            biometricIvBase64 = iv.toBase64(),
+                        )
+                    )
+                    Result.success(Unit)
+                } catch (e: Exception) {
+                    Result.failure(Exception("Failed to enroll biometric key: ${e.message}", e))
+                }
+            }
+        }
+
+    override suspend fun unlockWithBiometrics(cryptoObject: BiometricPrompt.CryptoObject): Result<Unit> =
+        withContext(Dispatchers.Default) {
+            mutex.withLock {
+                try {
+                    val settings = settingsRepository.getSettings()
+                    if (settings.wrappedDekBase64.isBlank() || settings.biometricIvBase64.isBlank()) {
+                        return@withLock Result.failure(IllegalStateException("Biometric unlock not enrolled"))
+                    }
+
+                    val wrappedDek = settings.wrappedDekBase64.fromBase64()
+                    val dek = keystoreManager.unwrapDek(wrappedDek, cryptoObject)
+
+                    if (dek.size != CryptoConstants.AES_KEY_BYTES) {
+                        return@withLock Result.failure(IllegalStateException("Decrypted DEK has invalid length"))
+                    }
+
+                    val oldDek = dekRef.getAndSet(dek)
+                    oldDek?.let { cryptoEngine.wipeKey(it) }
+                    _vaultState.value = VaultState.Unlocked
+                    Result.success(Unit)
+                } catch (e: Exception) {
+                    Result.failure(Exception("Failed to unlock vault with biometrics: ${e.message}", e))
+                }
+            }
+        }
+
+    override suspend fun disableBiometricUnlock(): Result<Unit> =
+        withContext(Dispatchers.Default) {
+            mutex.withLock {
+                try {
+                    keystoreManager.deleteKey()
+                    val currentSettings = settingsRepository.getSettings()
+                    settingsRepository.updateSettings(
+                        currentSettings.copy(
+                            biometricUnlockEnabled = false,
+                            wrappedDekBase64 = "",
+                            biometricIvBase64 = "",
+                        )
+                    )
+                    Result.success(Unit)
+                } catch (e: Exception) {
+                    Result.failure(e)
+                }
+            }
+        }
 
     override suspend fun lockVault() {
         mutex.withLock {

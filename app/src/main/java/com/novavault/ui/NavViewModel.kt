@@ -93,16 +93,30 @@ class NavViewModel @Inject constructor(
         }
     }
 
+    private var lastBackgroundTimestamp: Long? = null
+
     fun onAppBackgrounded() {
-        viewModelScope.launch {
-            val settings = settingsRepository.getSettings()
-            if (settings.lockOnBackground) {
-                vaultRepository.lockVault()
-            }
-        }
+        lastBackgroundTimestamp = System.currentTimeMillis()
     }
 
     fun onAppForegrounded() {
-        // Handled reactively
+        val bgTime = lastBackgroundTimestamp ?: return
+        lastBackgroundTimestamp = null
+        val elapsed = System.currentTimeMillis() - bgTime
+
+        viewModelScope.launch {
+            val settings = settingsRepository.getSettings()
+            if (settings.lockOnBackground) {
+                // If backgrounded for more than 2 seconds (avoids locking on transient biometric prompts or system popups)
+                if (elapsed >= 2000L) {
+                    vaultRepository.lockVault()
+                }
+            } else if (settings.autoLockTimeoutMinutes > 0) {
+                val timeoutMs = settings.autoLockTimeoutMinutes * 60 * 1000L
+                if (elapsed >= timeoutMs) {
+                    vaultRepository.lockVault()
+                }
+            }
+        }
     }
 }

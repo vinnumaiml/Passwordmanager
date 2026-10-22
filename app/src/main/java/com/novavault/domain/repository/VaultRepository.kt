@@ -1,5 +1,6 @@
 package com.novavault.domain.repository
 
+import androidx.biometric.BiometricPrompt
 import com.novavault.domain.model.VaultItem
 import com.novavault.domain.model.VaultState
 import com.novavault.domain.model.Folder
@@ -13,6 +14,10 @@ interface VaultRepository {
     suspend fun unlockWithMasterPassword(masterPassword: CharArray): Result<Unit>
     suspend fun unlockWithRecoveryKey(recoveryKey: ByteArray): Result<Unit>
     suspend fun resetMasterPasswordWithRecoveryKey(recoveryKey: ByteArray, newMasterPassword: CharArray): Result<Unit>
+    suspend fun setupBiometricUnlock(cryptoObject: BiometricPrompt.CryptoObject): Result<Unit>
+    suspend fun unlockWithBiometrics(cryptoObject: BiometricPrompt.CryptoObject): Result<Unit>
+    suspend fun disableBiometricUnlock(): Result<Unit>
+    fun canSetupBiometric(): Boolean
     suspend fun lockVault()
     fun isUnlocked(): Boolean
 

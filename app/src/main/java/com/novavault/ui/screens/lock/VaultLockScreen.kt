@@ -1,5 +1,9 @@
 package com.novavault.ui.screens.lock
 
+import android.app.Activity
+import android.security.keystore.KeyPermanentlyInvalidatedException
+import androidx.activity.compose.BackHandler
+import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -50,6 +54,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
+import com.novavault.crypto.KeystoreManager
 import com.novavault.domain.repository.SettingsRepository
 import com.novavault.domain.repository.VaultRepository
 import com.novavault.domain.usecase.crypto.RecoveryKeyUseCase
@@ -60,14 +65,19 @@ import com.novavault.ui.navigation.NavRoute
 import com.novavault.ui.theme.AuroraBackground
 import com.novavault.ui.theme.NovaColors
 import com.novavault.util.BiometricPromptManager
+import com.novavault.util.fromBase64
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import javax.crypto.Cipher
 import javax.inject.Inject
 
 @HiltViewModel
 class VaultLockViewModel @Inject constructor(
     private val vaultRepository: VaultRepository,
     private val settingsRepository: SettingsRepository,
+    private val keystoreManager: KeystoreManager,
     private val recoveryKeyUseCase: RecoveryKeyUseCase,
 ) : ViewModel() {
     var password by mutableStateOf("")
@@ -86,7 +96,43 @@ class VaultLockViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             val settings = settingsRepository.getSettings()
-            isBiometricEnabled = settings.biometricUnlockEnabled
+            isBiometricEnabled = settings.biometricUnlockEnabled &&
+                    settings.wrappedDekBase64.isNotBlank() &&
+                    settings.biometricIvBase64.isNotBlank()
+        }
+    }
+
+    suspend fun prepareBiometricCipher(): Cipher? = withContext(Dispatchers.Default) {
+        try {
+            val settings = settingsRepository.getSettings()
+            if (settings.biometricUnlockEnabled &&
+                settings.biometricIvBase64.isNotBlank() &&
+                settings.wrappedDekBase64.isNotBlank()
+            ) {
+                val iv = settings.biometricIvBase64.fromBase64()
+                keystoreManager.getCipherForDecrypt(iv)
+            } else null
+        } catch (e: KeyPermanentlyInvalidatedException) {
+            vaultRepository.disableBiometricUnlock()
+            isBiometricEnabled = false
+            errorMessage = "Biometrics changed. Please unlock using your Master Password."
+            null
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun unlockWithBiometrics(cryptoObject: BiometricPrompt.CryptoObject, onSuccess: () -> Unit) {
+        isUnlocking = true
+        errorMessage = null
+        viewModelScope.launch {
+            val result = vaultRepository.unlockWithBiometrics(cryptoObject)
+            isUnlocking = false
+            if (result.isSuccess) {
+                onSuccess()
+            } else {
+                errorMessage = result.exceptionOrNull()?.message ?: "Biometric unlock failed"
+            }
         }
     }
 
@@ -148,14 +194,37 @@ fun VaultLockScreen(
     viewModel: VaultLockViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val activity = context as? Activity
     val biometricPromptManager = LocalBiometricPromptManager.current
+
+    // Prevent back navigation from casually bypassing the lock screen into a locked state
+    BackHandler {
+        activity?.moveTaskToBack(true)
+    }
+
+    fun handleUnlockSuccess() {
+        val popped = navController.popBackStack()
+        if (!popped) {
+            navController.navigate(NavRoute.Home.route) {
+                popUpTo(NavRoute.VaultLock.route) { inclusive = true }
+            }
+        }
+    }
 
     LaunchedEffect(viewModel.isBiometricEnabled) {
         if (viewModel.isBiometricEnabled && context is FragmentActivity && biometricPromptManager.canAuthenticate()) {
-            biometricPromptManager.prompt(context) { result ->
-                if (result is BiometricPromptManager.BiometricResult.Success) {
-                    navController.navigate(NavRoute.Home.route) {
-                        popUpTo(NavRoute.VaultLock.route) { inclusive = true }
+            val cipher = viewModel.prepareBiometricCipher()
+            if (cipher != null) {
+                biometricPromptManager.prompt(
+                    activity = context,
+                    title = "Unlock Elvarix",
+                    subtitle = "Scan your fingerprint to decrypt your vault",
+                    cryptoObject = BiometricPrompt.CryptoObject(cipher),
+                ) { result ->
+                    if (result is BiometricPromptManager.BiometricResult.Success && result.cryptoObject != null) {
+                        viewModel.unlockWithBiometrics(result.cryptoObject) {
+                            handleUnlockSuccess()
+                        }
                     }
                 }
             }
@@ -190,7 +259,7 @@ fun VaultLockScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Enter your Master Password to decrypt your vault items.",
+                text = "Enter your Master Password or authenticate to decrypt your vault.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = NovaColors.TextSecondary,
                 textAlign = TextAlign.Center,
@@ -217,9 +286,7 @@ fun VaultLockScreen(
                 text = "Unlock Vault",
                 onClick = {
                     viewModel.unlockWithPassword {
-                        navController.navigate(NavRoute.Home.route) {
-                            popUpTo(NavRoute.VaultLock.route) { inclusive = true }
-                        }
+                        handleUnlockSuccess()
                     }
                 },
                 loading = viewModel.isUnlocking,
@@ -231,11 +298,23 @@ fun VaultLockScreen(
                 IconButton(
                     onClick = {
                         if (context is FragmentActivity) {
-                            biometricPromptManager.prompt(context) { result ->
-                                if (result is BiometricPromptManager.BiometricResult.Success) {
-                                    navController.navigate(NavRoute.Home.route) {
-                                        popUpTo(NavRoute.VaultLock.route) { inclusive = true }
+                            kotlinx.coroutines.MainScope().launch {
+                                val cipher = viewModel.prepareBiometricCipher()
+                                if (cipher != null) {
+                                    biometricPromptManager.prompt(
+                                        activity = context,
+                                        title = "Unlock Elvarix",
+                                        subtitle = "Scan your fingerprint to decrypt your vault",
+                                        cryptoObject = BiometricPrompt.CryptoObject(cipher),
+                                    ) { result ->
+                                        if (result is BiometricPromptManager.BiometricResult.Success && result.cryptoObject != null) {
+                                            viewModel.unlockWithBiometrics(result.cryptoObject) {
+                                                handleUnlockSuccess()
+                                            }
+                                        }
                                     }
+                                } else {
+                                    viewModel.errorMessage = "Biometrics changed or not configured. Use Master Password."
                                 }
                             }
                         }
@@ -350,9 +429,7 @@ fun VaultLockScreen(
                 Button(
                     onClick = {
                         viewModel.resetMasterPasswordWithRecovery {
-                            navController.navigate(NavRoute.Home.route) {
-                                popUpTo(NavRoute.VaultLock.route) { inclusive = true }
-                            }
+                            handleUnlockSuccess()
                         }
                     },
                     enabled = !viewModel.isResetting &&
