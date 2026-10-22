@@ -68,7 +68,7 @@ fun OnboardingScreen(
             iconTint = Color(0xFF5B7FFF),
             title = "Zero-Knowledge Encryption",
             description = "Your data is encrypted on-device before it ever leaves your phone. " +
-                    "Even Nova Vault cannot read your passwords. Only you hold the keys.",
+                    "Even Elvarix cannot read your passwords. Only you hold the keys.",
         ),
         OnboardingPage(
             icon = Icons.Default.PhoneAndroid,

@@ -166,7 +166,7 @@ fun RecoveryKitScreen(
                                 SecureClipboard.copyAndScheduleClear(
                                     context = context,
                                     text = viewModel.formattedKey,
-                                    label = "Nova Vault Recovery Key",
+                                    label = "Elvarix Recovery Key",
                                     clearAfterSeconds = 60,
                                     scope = scope,
                                 )

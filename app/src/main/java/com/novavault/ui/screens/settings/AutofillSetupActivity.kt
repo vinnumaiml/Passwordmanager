@@ -39,13 +39,13 @@ class AutofillSetupActivity : ComponentActivity() {
                             .padding(24.dp),
                     ) {
                         Text(
-                            text = "Nova Vault Autofill",
+                            text = "Elvarix Autofill",
                             style = MaterialTheme.typography.headlineMedium,
                             color = NovaColors.TextPrimary,
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "Nova Vault securely autofills usernames, passwords, and TOTP codes in your apps and web browsers. Your credentials never leave your device unencrypted.",
+                            text = "Elvarix securely autofills usernames, passwords, and TOTP codes in your apps and web browsers. Your credentials never leave your device unencrypted.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = NovaColors.TextSecondary,
                         )

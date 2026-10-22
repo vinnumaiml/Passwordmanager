@@ -124,7 +124,7 @@ fun MasterPasswordSetupScreen(
                         modifier = Modifier.size(20.dp),
                     )
                     Text(
-                        text = " If you lose your Master Password and do not have your Recovery Kit, your vault CANNOT be decrypted. Nova Vault has zero knowledge of your secrets.",
+                        text = " If you lose your Master Password and do not have your Recovery Kit, your vault CANNOT be decrypted. Elvarix has zero knowledge of your secrets.",
                         style = MaterialTheme.typography.bodySmall,
                         color = NovaColors.TextSecondary,
                     )

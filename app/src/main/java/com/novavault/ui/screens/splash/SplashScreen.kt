@@ -61,7 +61,7 @@ fun SplashScreen(
     val logoAlpha = remember { Animatable(0f) }
 
     // Title letter-by-letter reveal
-    val title = "NOVA VAULT"
+    val title = "ELVARIX"
     val letterAlphas = remember { title.map { Animatable(0f) } }
 
     // Aurora shift

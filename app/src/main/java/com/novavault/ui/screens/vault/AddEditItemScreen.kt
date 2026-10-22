@@ -1,6 +1,12 @@
 package com.novavault.ui.screens.vault
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -241,6 +247,40 @@ fun AddEditItemScreen(
                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                 color = NovaColors.TextPrimary,
             )
+
+            if (viewModel.itemId == null) {
+                Spacer(modifier = Modifier.height(14.dp))
+                val availableTypes = listOf(
+                    VaultItemType.LOGIN to "Login",
+                    VaultItemType.SECURE_NOTE to "Note",
+                    VaultItemType.PAYMENT_CARD to "Card",
+                    VaultItemType.WIFI_CREDENTIAL to "Wi-Fi",
+                )
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(bottom = 6.dp)
+                ) {
+                    items(availableTypes) { (type, label) ->
+                        val isSelected = viewModel.itemType == type
+                        Surface(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .clickable { viewModel.itemType = type },
+                            shape = RoundedCornerShape(16.dp),
+                            color = if (isSelected) NovaColors.PrimaryAccent else NovaColors.SurfaceElevated,
+                        ) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) NovaColors.TextPrimary else NovaColors.TextSecondary,
+                                ),
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            )
+                        }
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 

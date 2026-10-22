@@ -1,5 +1,8 @@
 package com.novavault.ui.screens.home
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,18 +31,21 @@ import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.SystemUpdate
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -55,6 +61,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
+import com.novavault.domain.model.UpdateCheckState
 import com.novavault.domain.model.VaultItem
 import com.novavault.domain.model.VaultItemType
 import com.novavault.domain.repository.VaultRepository
@@ -62,6 +69,8 @@ import com.novavault.domain.usecase.vault.GeneratePasswordUseCase
 import com.novavault.domain.usecase.vault.PasswordStrength
 import com.novavault.ui.components.VaultItemCard
 import com.novavault.ui.navigation.NavRoute
+import com.novavault.ui.screens.update.UpdateDialog
+import com.novavault.ui.screens.update.UpdateViewModel
 import com.novavault.ui.theme.AuroraBackground
 import com.novavault.ui.theme.NovaColors
 import com.novavault.util.SecureClipboard
@@ -71,6 +80,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.Calendar
 import javax.inject.Inject
 
 @HiltViewModel
@@ -109,10 +119,21 @@ class HomeViewModel @Inject constructor(
     }
 }
 
+private fun getPersonalizedGreeting(): String {
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    return when (hour) {
+        in 5..11 -> "Good Morning"
+        in 12..16 -> "Good Afternoon"
+        in 17..21 -> "Good Evening"
+        else -> "Good Night"
+    }
+}
+
 @Composable
 fun HomeScreen(
     navController: NavController,
     viewModel: HomeViewModel = hiltViewModel(),
+    updateViewModel: UpdateViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -120,6 +141,12 @@ fun HomeScreen(
     val favorites by viewModel.favorites.collectAsState()
     val recentItems by viewModel.recentItems.collectAsState()
     val securityScore by viewModel.securityScore.collectAsState()
+    val updateState by updateViewModel.checkState.collectAsState()
+
+    // Gentle update check on Home screen start
+    LaunchedEffect(Unit) {
+        updateViewModel.checkForUpdates(force = false)
+    }
 
     AuroraBackground {
         LazyColumn(
@@ -128,23 +155,98 @@ fun HomeScreen(
                 .windowInsetsPadding(WindowInsets.systemBars),
             contentPadding = PaddingValues(bottom = 90.dp),
         ) {
-            // Header
+            // Header with Elvarix Branding & Personalized Greeting
             item {
-                Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
-                    Text(
-                        text = "NOVA VAULT",
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = NovaColors.SecondaryAccent,
-                            letterSpacing = 2.sp,
-                        ),
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Your Protected Vault",
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                        color = NovaColors.TextPrimary,
-                    )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column {
+                        Text(
+                            text = "ELVARIX",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = NovaColors.SecondaryAccent,
+                                letterSpacing = 2.5.sp,
+                            ),
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "${getPersonalizedGreeting()}, Sovereign Vault",
+                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                            color = NovaColors.TextPrimary,
+                        )
+                    }
+
+                    // Security Shield indicator badge
+                    Surface(
+                        shape = CircleShape,
+                        color = NovaColors.SurfaceElevated,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, NovaColors.GlowCyan),
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clickable { navController.navigate(NavRoute.SecurityCenter.route) },
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Shield,
+                                contentDescription = "Security Status",
+                                tint = NovaColors.SecondaryAccent,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Update Notification Banner (if update available)
+            item {
+                AnimatedVisibility(
+                    visible = updateState is UpdateCheckState.UpdateAvailable,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                ) {
+                    val manifest = (updateState as? UpdateCheckState.UpdateAvailable)?.manifest
+                    if (manifest != null) {
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = NovaColors.PrimaryAccentDim.copy(alpha = 0.35f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, NovaColors.SecondaryAccent.copy(alpha = 0.6f)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 6.dp)
+                                .clickable { /* Dialog is rendered below */ },
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.SystemUpdate,
+                                    contentDescription = null,
+                                    tint = NovaColors.SecondaryAccent,
+                                    modifier = Modifier.size(22.dp),
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Elvarix v${manifest.versionName} Available",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = NovaColors.TextPrimary,
+                                    )
+                                    Text(
+                                        text = "Tap to review release notes and install update",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = NovaColors.TextSecondary,
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
                 }
             }
 
@@ -229,85 +331,126 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(20.dp))
             }
 
-            // Quick add category shortcuts
+            // Quick Category Shortcuts Row
             item {
-                Text(
-                    text = "Quick Actions",
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    color = NovaColors.TextSecondary,
-                    modifier = Modifier.padding(horizontal = 20.dp),
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    item {
-                        QuickActionPill(
-                            icon = Icons.Default.Lock,
-                            label = "Add Login",
-                            onClick = { navController.navigate(NavRoute.AddItem.createRoute("LOGIN")) },
-                        )
-                    }
-                    item {
-                        QuickActionPill(
-                            icon = Icons.Default.Description,
-                            label = "Add Note",
-                            onClick = { navController.navigate(NavRoute.AddItem.createRoute("SECURE_NOTE")) },
-                        )
-                    }
-                    item {
-                        QuickActionPill(
-                            icon = Icons.Default.CreditCard,
-                            label = "Add Card",
-                            onClick = { navController.navigate(NavRoute.AddItem.createRoute("PAYMENT_CARD")) },
-                        )
-                    }
-                    item {
-                        QuickActionPill(
-                            icon = Icons.Default.Key,
-                            label = "Generator",
-                            onClick = { navController.navigate(NavRoute.PasswordGenerator.route) },
-                        )
+                Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                    Text(
+                        text = "Categories & Tools",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = NovaColors.TextSecondary,
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        item {
+                            QuickActionPill(
+                                icon = Icons.Default.Key,
+                                label = "Add Login",
+                                onClick = { navController.navigate(NavRoute.AddItem.createRoute("LOGIN")) },
+                            )
+                        }
+                        item {
+                            QuickActionPill(
+                                icon = Icons.Default.Description,
+                                label = "Add Note",
+                                onClick = { navController.navigate(NavRoute.AddItem.createRoute("SECURE_NOTE")) },
+                            )
+                        }
+                        item {
+                            QuickActionPill(
+                                icon = Icons.Default.CreditCard,
+                                label = "Add Card",
+                                onClick = { navController.navigate(NavRoute.AddItem.createRoute("PAYMENT_CARD")) },
+                            )
+                        }
+                        item {
+                            QuickActionPill(
+                                icon = Icons.Default.Person,
+                                label = "Add Identity",
+                                onClick = { navController.navigate(NavRoute.AddItem.createRoute("IDENTITY")) },
+                            )
+                        }
+                        item {
+                            QuickActionPill(
+                                icon = Icons.Default.Wifi,
+                                label = "Add Wi-Fi",
+                                onClick = { navController.navigate(NavRoute.AddItem.createRoute("WIFI_CREDENTIAL")) },
+                            )
+                        }
+                        item {
+                            QuickActionPill(
+                                icon = Icons.Default.Security,
+                                label = "Key Generator",
+                                onClick = { navController.navigate(NavRoute.PasswordGenerator.route) },
+                            )
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
-            // Favorites section
+            // Favorites section (if any)
             if (favorites.isNotEmpty()) {
                 item {
                     Text(
                         text = "Favorites",
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = NovaColors.TextSecondary,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = NovaColors.TextPrimary,
                         modifier = Modifier.padding(horizontal = 20.dp),
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                 }
-                items(favorites, key = { "fav_${it.id}" }) { item ->
-                    Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) {
-                        VaultItemCard(
-                            item = item,
-                            onClick = { navController.navigate(NavRoute.ItemDetail.createRoute(item.id)) },
-                            onToggleFavorite = { viewModel.toggleFavorite(item) },
-                            onCopyPassword = {
-                                item.login?.password?.let { pwd ->
-                                    SecureClipboard.copyAndScheduleClear(context, pwd, "Password", 30, scope)
+
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        items(favorites, key = { it.id }) { item ->
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = NovaColors.SurfaceVariant,
+                                border = androidx.compose.foundation.BorderStroke(0.5.dp, NovaColors.Border),
+                                modifier = Modifier
+                                    .width(160.dp)
+                                    .clickable { navController.navigate(NavRoute.ItemDetail.createRoute(item.id)) }
+                                    .padding(12.dp),
+                            ) {
+                                Column {
+                                    Icon(
+                                        imageVector = Icons.Default.Key,
+                                        contentDescription = null,
+                                        tint = NovaColors.SecondaryAccent,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = item.name,
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                                        color = NovaColors.TextPrimary,
+                                        maxLines = 1,
+                                    )
+                                    Text(
+                                        text = item.login?.username.orEmpty().ifBlank { item.type.name },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = NovaColors.TextSecondary,
+                                        maxLines = 1,
+                                    )
                                 }
-                            },
-                        )
+                            }
+                        }
                     }
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
-                item { Spacer(modifier = Modifier.height(20.dp)) }
             }
 
-            // Recent items section
+            // Recent items
             item {
                 Text(
                     text = "Recently Updated",
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    color = NovaColors.TextSecondary,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = NovaColors.TextPrimary,
                     modifier = Modifier.padding(horizontal = 20.dp),
                 )
                 Spacer(modifier = Modifier.height(10.dp))
@@ -321,15 +464,24 @@ fun HomeScreen(
                             .padding(horizontal = 20.dp, vertical = 24.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            text = "No items yet. Tap '+' to add your first password.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = NovaColors.TextHint,
-                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = NovaColors.TextHint,
+                                modifier = Modifier.size(48.dp),
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Your Elvarix vault is empty",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = NovaColors.TextSecondary,
+                            )
+                        }
                     }
                 }
             } else {
-                items(recentItems, key = { "recent_${it.id}" }) { item ->
+                items(recentItems, key = { it.id }) { item ->
                     Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) {
                         VaultItemCard(
                             item = item,
@@ -345,6 +497,9 @@ fun HomeScreen(
                 }
             }
         }
+
+        // Render In-App Update Dialog when update is available
+        UpdateDialog(viewModel = updateViewModel)
     }
 }
 
@@ -360,6 +515,7 @@ private fun QuickActionPill(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(24.dp),
         color = NovaColors.SurfaceVariant,
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, NovaColors.Border),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),

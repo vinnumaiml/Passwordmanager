@@ -1,4 +1,4 @@
-name: Build and Release Nova Vault Android APK
+name: Build and Release Elvarix Android APK
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
       version_tag:
         description: 'Version tag (e.g. v1.0.0)'
         required: false
-        default: 'v1.0.0'
+        default: 'v1.1.0'
 
 permissions:
   contents: write
@@ -83,7 +83,7 @@ jobs:
             echo "  3. ANDROID_KEY_ALIAS"
             echo "  4. ANDROID_KEY_PASSWORD"
             echo ""
-            echo "Per security specifications, Nova Vault will NEVER publish unsigned or debug APKs."
+            echo "Per security specifications, Elvarix will NEVER publish unsigned or debug APKs."
             echo "=========================================================================="
             exit 1
           fi
@@ -141,55 +141,83 @@ jobs:
           mkdir -p release-artifacts
           RELEASE_APK="app/build/outputs/apk/release/app-release.apk"
 
-          # 1. Stable asset filename required by website direct download
-          cp "$RELEASE_APK" "release-artifacts/NovaVault.apk"
+          # 1. Primary branded release asset
+          cp "$RELEASE_APK" "release-artifacts/Elvarix.apk"
+          cp "$RELEASE_APK" "release-artifacts/Elvarix-${{ env.RELEASE_TAG }}.apk"
 
-          # 2. Versioned asset filename
+          # 2. Backward compatibility alias for legacy installations
+          cp "$RELEASE_APK" "release-artifacts/NovaVault.apk"
           cp "$RELEASE_APK" "release-artifacts/NovaVault-${{ env.RELEASE_TAG }}.apk"
 
-          # 3. Compute SHA-256 Checksum in standard sha256sum format
+          # 3. Compute SHA-256 Checksums
           cd release-artifacts
+          sha256sum Elvarix.apk > Elvarix.apk.sha256
           sha256sum NovaVault.apk > NovaVault.apk.sha256
-          cat NovaVault.apk.sha256
+          cat Elvarix.apk.sha256
+
+          # 4. Generate latest.json manifest for in-app automatic updates
+          VERSION_CLEAN=$(echo "${{ env.RELEASE_TAG }}" | sed 's/^v//')
+          SHA_VAL=$(awk '{print $1}' Elvarix.apk.sha256)
+          cat <<EOF > latest.json
+          {
+            "versionCode": 2,
+            "versionName": "$VERSION_CLEAN",
+            "apkUrl": "https://github.com/${{ github.repository }}/releases/latest/download/Elvarix.apk",
+            "sha256": "$SHA_VAL",
+            "releaseNotes": "Elvarix $RELEASE_TAG: Rebrand to Elvarix, authoritative email verification, enhanced Home dashboard with active creation FAB, and secure in-app update system.",
+            "mandatory": false,
+            "minVersionCode": 1
+          }
+          EOF
+          cat latest.json
           cd ..
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
-          name: Nova Vault ${{ env.RELEASE_TAG }}
+          name: Elvarix ${{ env.RELEASE_TAG }}
           draft: false
           prerelease: false
           files: |
+            release-artifacts/Elvarix.apk
+            release-artifacts/Elvarix-${{ env.RELEASE_TAG }}.apk
+            release-artifacts/Elvarix.apk.sha256
             release-artifacts/NovaVault.apk
             release-artifacts/NovaVault-${{ env.RELEASE_TAG }}.apk
             release-artifacts/NovaVault.apk.sha256
+            release-artifacts/latest.json
           body: |
-            ## Nova Vault ${{ env.RELEASE_TAG }} — Official Android Release
+            ## Elvarix ${{ env.RELEASE_TAG }} — Official Android Release
 
             ### 🔐 Cryptographic Integrity & Downloads
-            - **Direct Stable Download:** [`NovaVault.apk`](https://github.com/${{ github.repository }}/releases/latest/download/NovaVault.apk)
-            - **Versioned Download:** `NovaVault-${{ env.RELEASE_TAG }}.apk`
-            - **SHA-256 Checksum:** `NovaVault.apk.sha256`
+            - **Direct Stable Download:** [`Elvarix.apk`](https://github.com/${{ github.repository }}/releases/latest/download/Elvarix.apk)
+            - **Versioned Download:** `Elvarix-${{ env.RELEASE_TAG }}.apk`
+            - **SHA-256 Checksum:** `Elvarix.apk.sha256`
+            - **Auto-Update Manifest:** [`latest.json`](https://github.com/${{ github.repository }}/releases/latest/download/latest.json)
+            - **Backward-Compatible Alias:** `NovaVault.apk`
 
             #### Verify SHA-256 Before Installing:
             ```bash
             # Linux / macOS
-            sha256sum -c NovaVault.apk.sha256
+            sha256sum -c Elvarix.apk.sha256
 
             # Windows PowerShell
-            Get-FileHash NovaVault.apk -Algorithm SHA256
+            Get-FileHash Elvarix.apk -Algorithm SHA256
             ```
 
             ---
 
             ### 🚀 Highlights
+            - **Rebranded to Elvarix:** Sovereign, futuristic security identity with native Jetpack Compose aurora backdrop.
+            - **Strict Backward Compatibility:** Same Android `applicationId` (`com.novavault`) and production release signature, enabling seamless upgrade over earlier versions.
+            - **In-App Auto Updates:** Manifest discovery (`latest.json`), progress indicator, SHA-256 verification, and PackageInstaller handoff.
+            - **Authoritative Email Verification:** Enforced backend verification check with 60-second cooldown and masked email display.
+            - **Home Dashboard Plus Button:** Prominent floating action button wired directly to the shared item creation workflow.
             - **Envelope Encryption:** AES-256-GCM + Argon2id (64 MiB, 3 iterations, 4 lanes).
             - **Hardware Keystore & Biometrics:** Device-specific key wrapping with Class 3 `BiometricPrompt`.
             - **Android System Autofill:** Native `AutofillService` integration with `AssistStructure` heuristics.
-            - **Built-in RFC 6238 TOTP:** Two-factor authenticator with CameraX QR code scanner and 30-second live wheel.
-            - **CSPRNG Generator:** Password and EFF large-wordlist passphrase generator with entropy scoring.
-            - **Security Center:** Vault audit and Have I Been Pwned (HIBP) k-anonymity breach detection.
+            - **Built-in RFC 6238 TOTP:** Two-factor authenticator with CameraX QR scanner and 30s wheel.
             - **Offline Recovery Kit:** 32-byte offline recovery code for emergency master key restoration.
 
       - name: Securely Clean Up Keystore

@@ -1,0 +1,9 @@
+{
+  "versionCode": 2,
+  "versionName": "1.1.0",
+  "apkUrl": "https://github.com/vinnumaiml/Passwordmanager/releases/latest/download/Elvarix.apk",
+  "sha256": "fbe2138ee2262210d2d818efb08589791cb6a304e5cf08f712bcdf05bc30d0dc",
+  "releaseNotes": "Elvarix v1.1.0: Complete rebrand to Elvarix, authoritative email verification, enhanced Home dashboard with creation FAB, and secure in-app update system.",
+  "mandatory": false,
+  "minVersionCode": 1
+}

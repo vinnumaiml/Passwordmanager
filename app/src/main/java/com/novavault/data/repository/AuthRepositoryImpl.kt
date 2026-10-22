@@ -10,6 +10,7 @@ import com.novavault.domain.model.AuthState
 import com.novavault.domain.repository.AuthRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.status.SessionStatus
 import kotlinx.coroutines.CoroutineScope
@@ -20,10 +21,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private val Context.authDataStore: DataStore<Preferences> by preferencesDataStore(name = "nova_vault_auth")
+private val Context.authDataStore: DataStore<Preferences> by preferencesDataStore(name = "elvarix_auth")
 
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
@@ -34,8 +36,8 @@ class AuthRepositoryImpl @Inject constructor(
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private object Keys {
-        val LOCAL_USER_EMAIL = stringPreferencesKey("local_user_email")
-        val LOCAL_USER_ID = stringPreferencesKey("local_user_id")
+        val LOCAL_USER_EMAIL = stringPreferencesKey("user_email")
+        val LOCAL_USER_ID = stringPreferencesKey("user_id")
         val EMAIL_VERIFIED = stringPreferencesKey("email_verified")
     }
 
@@ -45,6 +47,7 @@ class AuthRepositoryImpl @Inject constructor(
     init {
         scope.launch {
             initAuthState()
+            observeSupabaseSession()
         }
     }
 
@@ -54,21 +57,23 @@ class AuthRepositoryImpl @Inject constructor(
         val userId = prefs[Keys.LOCAL_USER_ID]
         val verified = prefs[Keys.EMAIL_VERIFIED] == "true"
 
-        if (email != null && userId != null) {
+        if (!email.isNullOrBlank() && !userId.isNullOrBlank()) {
             if (verified) {
                 _authState.value = AuthState.Authenticated(userId, email)
             } else {
                 _authState.value = AuthState.EmailNotVerified(email)
             }
         } else {
-            // Check Supabase session
+            // Check existing Supabase session
             try {
                 val currentSession = auth.currentSessionOrNull()
                 val user = auth.currentUserOrNull()
                 if (currentSession != null && user != null) {
                     if (user.emailConfirmedAt != null) {
+                        saveSessionToDataStore(user.id, user.email ?: "", isVerified = true)
                         _authState.value = AuthState.Authenticated(user.id, user.email ?: "")
                     } else {
+                        saveSessionToDataStore(user.id, user.email ?: "", isVerified = false)
                         _authState.value = AuthState.EmailNotVerified(user.email ?: "")
                     }
                 } else {
@@ -80,25 +85,75 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
+    private fun observeSupabaseSession() {
+        scope.launch {
+            auth.sessionStatus.collect { status ->
+                when (status) {
+                    is SessionStatus.Authenticated -> {
+                        val user = auth.currentUserOrNull()
+                        if (user != null) {
+                            if (user.emailConfirmedAt != null) {
+                                saveSessionToDataStore(user.id, user.email ?: "", isVerified = true)
+                                _authState.value = AuthState.Authenticated(user.id, user.email ?: "")
+                            } else {
+                                saveSessionToDataStore(user.id, user.email ?: "", isVerified = false)
+                                _authState.value = AuthState.EmailNotVerified(user.email ?: "")
+                            }
+                        }
+                    }
+                    is SessionStatus.NotAuthenticated -> {
+                        val prefs = context.authDataStore.data.first()
+                        val email = prefs[Keys.LOCAL_USER_EMAIL]
+                        if (email.isNullOrBlank()) {
+                            _authState.value = AuthState.Unauthenticated
+                        }
+                    }
+                    else -> {
+                        // Initializing, RefreshFailure, or other statuses: maintain cached state
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun saveSessionToDataStore(userId: String, email: String, isVerified: Boolean) {
+        context.authDataStore.edit { prefs ->
+            prefs[Keys.LOCAL_USER_EMAIL] = email
+            prefs[Keys.LOCAL_USER_ID] = userId
+            prefs[Keys.EMAIL_VERIFIED] = isVerified.toString()
+        }
+    }
+
     override suspend fun signUp(email: String, password: String): Result<Unit> {
         return try {
+            var userId: String? = null
+            var remoteConfirmed = false
+
             try {
                 auth.signUpWith(Email) {
                     this.email = email
                     this.password = password
                 }
-            } catch (ignored: Exception) {
-                // If remote fails (e.g. placeholder URL), enable local authentication
+                val user = auth.currentUserOrNull()
+                userId = user?.id
+                remoteConfirmed = user?.emailConfirmedAt != null
+            } catch (e: Exception) {
+                // If remote is unreachable or offline, generate local user session
+                userId = UUID.randomUUID().toString()
             }
 
-            // Save local credentials
-            context.authDataStore.edit { prefs ->
-                prefs[Keys.LOCAL_USER_EMAIL] = email
-                prefs[Keys.LOCAL_USER_ID] = java.util.UUID.randomUUID().toString()
-                prefs[Keys.EMAIL_VERIFIED] = "true" // Auto-verify for seamless local testing
+            val finalUserId = userId ?: UUID.randomUUID().toString()
+
+            // Crucial security requirement: NEVER mark email_verified = true upon signup
+            // unless backend explicitly confirmed emailConfirmedAt != null
+            saveSessionToDataStore(finalUserId, email, isVerified = remoteConfirmed)
+
+            if (remoteConfirmed) {
+                _authState.value = AuthState.Authenticated(finalUserId, email)
+            } else {
+                _authState.value = AuthState.EmailNotVerified(email)
             }
-            val userId = context.authDataStore.data.first()[Keys.LOCAL_USER_ID] ?: "local_user"
-            _authState.value = AuthState.Authenticated(userId, email)
+
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -107,22 +162,39 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun signIn(email: String, password: String): Result<Unit> {
         return try {
+            var remoteConfirmed = false
+            var userId: String? = null
+
             try {
                 auth.signInWith(Email) {
                     this.email = email
                     this.password = password
                 }
-            } catch (ignored: Exception) {
-                // If remote fails, fallback to local session validation
+                val user = auth.currentUserOrNull()
+                userId = user?.id
+                remoteConfirmed = user?.emailConfirmedAt != null
+            } catch (e: Exception) {
+                // Check if existing local session matches
+                val prefs = context.authDataStore.data.first()
+                val localEmail = prefs[Keys.LOCAL_USER_EMAIL]
+                val localVerified = prefs[Keys.EMAIL_VERIFIED] == "true"
+                if (localEmail.equals(email, ignoreCase = true)) {
+                    userId = prefs[Keys.LOCAL_USER_ID]
+                    remoteConfirmed = localVerified
+                } else {
+                    throw e
+                }
             }
 
-            val userId = java.util.UUID.randomUUID().toString()
-            context.authDataStore.edit { prefs ->
-                prefs[Keys.LOCAL_USER_EMAIL] = email
-                prefs[Keys.LOCAL_USER_ID] = userId
-                prefs[Keys.EMAIL_VERIFIED] = "true"
+            val finalUserId = userId ?: UUID.randomUUID().toString()
+            saveSessionToDataStore(finalUserId, email, isVerified = remoteConfirmed)
+
+            if (remoteConfirmed) {
+                _authState.value = AuthState.Authenticated(finalUserId, email)
+            } else {
+                _authState.value = AuthState.EmailNotVerified(email)
             }
-            _authState.value = AuthState.Authenticated(userId, email)
+
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -147,7 +219,15 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun sendEmailVerification(): Result<Unit> {
         return try {
-            // Emulate or trigger resend
+            val prefs = context.authDataStore.data.first()
+            val email = prefs[Keys.LOCAL_USER_EMAIL] ?: auth.currentUserOrNull()?.email
+            if (!email.isNullOrBlank()) {
+                try {
+                    auth.resendEmail(OtpType.Email.SIGNUP, email)
+                } catch (e: Exception) {
+                    // Log or handle provider specific error
+                }
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -171,10 +251,35 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun refreshSession(): Result<Unit> {
         return try {
+            var confirmed = false
+            var currentEmail: String? = null
+            var currentUserId: String? = null
+
             try {
                 auth.refreshCurrentSession()
+                val user = auth.currentUserOrNull()
+                if (user != null) {
+                    currentEmail = user.email
+                    currentUserId = user.id
+                    confirmed = user.emailConfirmedAt != null
+                }
             } catch (ignored: Exception) {}
-            Result.success(Unit)
+
+            if (confirmed && currentEmail != null && currentUserId != null) {
+                saveSessionToDataStore(currentUserId, currentEmail, isVerified = true)
+                _authState.value = AuthState.Authenticated(currentUserId, currentEmail)
+                Result.success(Unit)
+            } else {
+                val prefs = context.authDataStore.data.first()
+                val email = prefs[Keys.LOCAL_USER_EMAIL] ?: ""
+                val localVerified = prefs[Keys.EMAIL_VERIFIED] == "true"
+                if (localVerified) {
+                    Result.success(Unit)
+                } else {
+                    _authState.value = AuthState.EmailNotVerified(email)
+                    Result.failure(IllegalStateException("Email not verified by server"))
+                }
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

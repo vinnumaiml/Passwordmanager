@@ -17,11 +17,11 @@
     <!-- Background Shield Glow -->
     <path d="M24 4L7 11V22C7 32.5 14.2 42.1 24 44.5C33.8 42.1 41 32.5 41 22V11L24 4Z" fill="url(#shieldGrad)" opacity="0.2" filter="url(#glow)"/>
     <!-- Outer Shield Border -->
-    <path d="M24 4L7 11V22C7 32.5 14.2 42.1 24 44.5C33.8 42.1 41 32.5 41 22V11L24 4Z" stroke="url(#shieldGrad)" stroke-width="2.5" stroke-linejoin="round" fill="#11182A"/>
+    <path d="M24 4L7 11V22C7 32.5 14.2 42.1 24 44.5C33.8 42.1 41 32.5 41 22V11L24 4Z" stroke="url(#shieldGrad)" stroke-width="2.5" stroke-linejoin="round" fill="#10162A"/>
     <!-- Inner Highlight -->
     <path d="M24 7L10 13V22C10 30.8 16 38.8 24 41C32 38.8 38 30.8 38 22V13L24 7Z" fill="url(#glowGrad)"/>
     <!-- Keyhole / Core Lock -->
     <circle cx="24" cy="20" r="4.5" fill="url(#shieldGrad)"/>
     <path d="M22 23.5L20.5 31H27.5L26 23.5H22Z" fill="url(#shieldGrad)"/>
-    <circle cx="24" cy="20" r="2" fill="#080B16"/>
+    <circle cx="24" cy="20" r="2" fill="#080A14"/>
 </svg>

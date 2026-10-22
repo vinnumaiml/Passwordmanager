@@ -22,6 +22,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
+import com.novavault.BuildConfig
+import com.novavault.domain.model.UpdateCheckState
+import com.novavault.ui.screens.update.UpdateDialog
+import com.novavault.ui.screens.update.UpdateViewModel
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Fingerprint
@@ -122,9 +127,11 @@ class SettingsViewModel @Inject constructor(
 fun SettingsScreen(
     navController: NavController,
     viewModel: SettingsViewModel = hiltViewModel(),
+    updateViewModel: UpdateViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val settings by viewModel.settings.collectAsState()
+    val updateCheckState by updateViewModel.checkState.collectAsState()
     var showSignOutDialog by remember { mutableStateOf(false) }
     var showDeleteAccountDialog by remember { mutableStateOf(false) }
     var showTimeoutDialog by remember { mutableStateOf(false) }
@@ -318,6 +325,42 @@ fun SettingsScreen(
                 }
             }
 
+            // Updates & System
+            item {
+                SectionHeader("UPDATES & SYSTEM")
+            }
+
+            item {
+                SettingsCard {
+                    SettingsClickableRow(
+                        icon = Icons.Default.Info,
+                        title = "Elvarix Version",
+                        value = "v${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})",
+                        onClick = {},
+                    )
+
+                    SettingsDivider()
+
+                    val updateSubtitle = when (val state = updateCheckState) {
+                        is UpdateCheckState.Checking -> "Checking for updates…"
+                        is UpdateCheckState.UpdateAvailable -> "v${state.manifest.versionName} available"
+                        is UpdateCheckState.UpToDate -> "Up to date"
+                        is UpdateCheckState.Error -> "Check failed"
+                        else -> "Check now"
+                    }
+
+                    SettingsClickableRow(
+                        icon = Icons.Default.SystemUpdate,
+                        title = "Check for Updates",
+                        value = updateSubtitle,
+                        titleColor = if (updateCheckState is UpdateCheckState.UpdateAvailable) NovaColors.SecondaryAccent else NovaColors.TextPrimary,
+                        onClick = {
+                            updateViewModel.checkForUpdates(force = true)
+                        },
+                    )
+                }
+            }
+
             // Security Disclosure
             item {
                 Card(
@@ -337,7 +380,7 @@ fun SettingsScreen(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "Nova Vault uses envelope encryption with Argon2id and AES-256-GCM. Your master password and vault records are strictly confidential and zero-knowledge protected. Penetration testing is recommended prior to production release.",
+                            text = "Elvarix uses envelope encryption with Argon2id and AES-256-GCM. Your master password and vault records are strictly confidential and zero-knowledge protected. Penetration testing is recommended prior to production release.",
                             style = MaterialTheme.typography.bodySmall,
                             color = NovaColors.TextSecondary,
                         )
@@ -440,6 +483,8 @@ fun SettingsScreen(
             },
         )
     }
+
+    UpdateDialog(viewModel = updateViewModel)
 
     // Account deletion confirmation dialog
     if (showDeleteAccountDialog) {

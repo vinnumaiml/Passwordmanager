@@ -16,7 +16,7 @@ object SecureClipboard {
     fun copyAndScheduleClear(
         context: Context,
         text: String,
-        label: String = "Nova Vault",
+        label: String = "Elvarix",
         clearAfterSeconds: Int = 30,
         scope: CoroutineScope,
     ) {

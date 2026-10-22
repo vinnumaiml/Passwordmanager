@@ -175,13 +175,13 @@ fun SignInScreen(
             // Logo + Title
             Icon(
                 imageVector = Icons.Default.Lock,
-                contentDescription = "Nova Vault",
+                contentDescription = "Elvarix",
                 tint = Color(0xFF5B7FFF),
                 modifier = Modifier.size(56.dp),
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "NOVA VAULT",
+                text = "ELVARIX",
                 color = Color.White,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,

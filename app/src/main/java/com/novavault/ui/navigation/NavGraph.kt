@@ -9,6 +9,8 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
@@ -155,7 +157,7 @@ fun NovaVaultNavGraph(
     val currentRoute = navBackStackEntry?.destination?.route
 
     val showBottomBar = currentRoute in mainRoutes
-    val showFab = currentRoute == NavRoute.Vault.route
+    val showFab = currentRoute in setOf(NavRoute.Vault.route, NavRoute.Home.route)
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -173,8 +175,9 @@ fun NovaVaultNavGraph(
                     },
                     containerColor = NovaColors.PrimaryAccent,
                     contentColor = NovaColors.TextPrimary,
+                    shape = RoundedCornerShape(16.dp),
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Item")
+                    Icon(Icons.Default.Add, contentDescription = "Add new item")
                 }
             }
         },

@@ -1,4 +1,4 @@
-## Nova Vault — .gitignore
+## Elvarix — .gitignore
 
 # Gradle
 .gradle/
@@ -29,7 +29,10 @@ Thumbs.db
 *.apk
 *.aab
 *.sha256
+!website/Elvarix.apk
+!website/Elvarix.apk.sha256
 !website/NovaVault.apk
+!website/latest.json
 
 # Kotlin
 *.class

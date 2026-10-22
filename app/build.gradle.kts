@@ -15,8 +15,8 @@ android {
         applicationId = "com.novavault"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -27,10 +27,20 @@ android {
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${project.findProperty("SUPABASE_ANON_KEY") ?: "placeholder_anon_key"}\"")
     }
 
-    val keystorePath = System.getenv("ANDROID_KEYSTORE_PATH") ?: project.findProperty("ANDROID_KEYSTORE_PATH") as? String
-    val keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: project.findProperty("ANDROID_KEYSTORE_PASSWORD") as? String
-    val keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: project.findProperty("ANDROID_KEY_ALIAS") as? String
-    val keyPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: project.findProperty("ANDROID_KEY_PASSWORD") as? String
+    val localKeystore = rootProject.file("nova_vault_release.jks")
+    val defaultPath = if (localKeystore.exists()) localKeystore.absolutePath else null
+    val keystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
+        ?: project.findProperty("ANDROID_KEYSTORE_PATH") as? String
+        ?: defaultPath
+    val keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+        ?: project.findProperty("ANDROID_KEYSTORE_PASSWORD") as? String
+        ?: (if (defaultPath != null) "NovaVault2026!" else null)
+    val keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+        ?: project.findProperty("ANDROID_KEY_ALIAS") as? String
+        ?: (if (defaultPath != null) "nova-vault" else null)
+    val keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+        ?: project.findProperty("ANDROID_KEY_PASSWORD") as? String
+        ?: (if (defaultPath != null) "NovaVault2026!" else null)
 
     val isSigningConfigured = !keystorePath.isNullOrBlank() &&
         file(keystorePath).exists() &&

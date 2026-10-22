@@ -82,7 +82,7 @@ class NovaVaultAutofillService : AutofillService() {
                     )
 
                     val presentation = RemoteViews(packageName, android.R.layout.simple_list_item_1).apply {
-                        setTextViewText(android.R.id.text1, "🔒 Unlock Nova Vault to Autofill")
+                        setTextViewText(android.R.id.text1, "🔒 Unlock Elvarix to Autofill")
                     }
 
                     val requiredAuthIds = listOfNotNull(usernameField?.id, passwordField?.id).toTypedArray()

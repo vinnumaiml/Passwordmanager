@@ -182,7 +182,7 @@ fun SignUpScreen(
             Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF5B7FFF), modifier = Modifier.size(48.dp))
             Spacer(modifier = Modifier.height(8.dp))
             Text("Create Account", color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Bold)
-            Text("Join Nova Vault — free forever", color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp)
+            Text("Join Elvarix — Sovereign Privacy", color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp)
 
             Spacer(modifier = Modifier.height(32.dp))
 

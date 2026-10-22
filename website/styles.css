@@ -1,28 +1,28 @@
 /* ==========================================================================
-   NOVA VAULT — Design System & Theme
-   Palette: Midnight Navy, Cyber Cyan & Deep Violet
+   ELVARIX — Design System & Theme
+   Palette: Space Navy (#080A14), Electric Cyan (#43E7D0), Primary Violet (#8B5CF6)
    ========================================================================== */
 
 :root {
-    --bg-midnight: #080B16;
-    --surface-dark: #0D1224;
-    --surface-card: #11182A;
-    --surface-card-hover: #17213A;
-    --surface-elevated: #1B2644;
+    --bg-midnight: #080A14;
+    --surface-dark: #0D1222;
+    --surface-card: #10162A;
+    --surface-card-hover: #171F35;
+    --surface-elevated: #171F35;
     
-    --border-subtle: rgba(245, 247, 255, 0.08);
-    --border-hover: rgba(245, 247, 255, 0.16);
+    --border-subtle: rgba(244, 246, 255, 0.08);
+    --border-hover: rgba(244, 246, 255, 0.16);
     --border-glow-violet: rgba(139, 92, 246, 0.4);
-    --border-glow-cyan: rgba(69, 229, 209, 0.4);
+    --border-glow-cyan: rgba(67, 231, 208, 0.4);
 
     --accent-violet: #8B5CF6;
-    --accent-violet-dark: #6D3FD8;
-    --accent-cyan: #45E5D1;
-    --accent-cyan-dark: #2BBFA9;
+    --accent-violet-dark: #7C3AED;
+    --accent-cyan: #43E7D0;
+    --accent-cyan-dark: #2DD4BF;
     --accent-indigo: #4F46E5;
     
-    --text-primary: #F5F7FF;
-    --text-secondary: #9AA7C2;
+    --text-primary: #F4F6FF;
+    --text-secondary: #A5B0CC;
     --text-muted: #5D6B88;
 
     --status-success: #32D74B;

@@ -1,5 +1,5 @@
 /**
- * NOVA VAULT — Public Website Application Script
+ * ELVARIX — Public Website Application Script
  * Features:
  * - Direct APK Download handling
  * - GitHub Releases API metadata integration
@@ -12,12 +12,12 @@
 const CONFIG = {
     REPO_OWNER: 'vinnumaiml',
     REPO_NAME: 'Passwordmanager',
-    APK_ASSET_NAME: 'NovaVault.apk',
-    DIRECT_APK_URL: 'NovaVault.apk',
-    FALLBACK_VERSION: 'v1.0.0',
-    FALLBACK_SIZE: '7.2 MB',
+    APK_ASSET_NAME: 'Elvarix.apk',
+    DIRECT_APK_URL: 'Elvarix.apk',
+    FALLBACK_VERSION: 'v1.1.0',
+    FALLBACK_SIZE: '6.9 MB',
     FALLBACK_DATE: 'October 2026',
-    FALLBACK_SHA256: 'b0a68c0218c1c794b81f3fd84fddefa66123182b726bf0cfa814ca27826d36a3'
+    FALLBACK_SHA256: 'fbe2138ee2262210d2d818efb08589791cb6a304e5cf08f712bcdf05bc30d0dc'
 };
 
 // Stable GitHub Releases Page URL
@@ -56,6 +56,22 @@ async function initReleaseMetadata() {
     const dateEl = document.getElementById('rel-date');
     const shaEl = document.getElementById('rel-sha');
 
+    // 1. Try local latest.json manifest first
+    try {
+        const localRes = await fetch('latest.json');
+        if (localRes.ok) {
+            const manifest = await localRes.json();
+            if (manifest.versionName && versionEl) versionEl.textContent = `v${manifest.versionName}`;
+            if (manifest.sha256 && shaEl) shaEl.textContent = manifest.sha256;
+            if (dateEl) dateEl.textContent = CONFIG.FALLBACK_DATE;
+            if (sizeEl) sizeEl.textContent = CONFIG.FALLBACK_SIZE;
+            return;
+        }
+    } catch (e) {
+        // Continue to GitHub API
+    }
+
+    // 2. Fetch latest release metadata from GitHub API
     try {
         const apiUrl = `https://api.github.com/repos/${CONFIG.REPO_OWNER}/${CONFIG.REPO_NAME}/releases/latest`;
         const res = await fetch(apiUrl, { headers: { 'Accept': 'application/vnd.github.v3+json' } });
@@ -176,10 +192,10 @@ function initCopyButtons() {
  * Lightweight Toast Notification
  */
 function showToast(message) {
-    let toast = document.getElementById('nova-toast');
+    let toast = document.getElementById('elvarix-toast');
     if (!toast) {
         toast = document.createElement('div');
-        toast.id = 'nova-toast';
+        toast.id = 'elvarix-toast';
         toast.className = 'toast';
         document.body.appendChild(toast);
     }

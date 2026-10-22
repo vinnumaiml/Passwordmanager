@@ -252,7 +252,7 @@ fun ImportExportScreen(
                             text = "Copy Backup to Clipboard",
                             onClick = {
                                 viewModel.exportJson?.let {
-                                    SecureClipboard.copyAndScheduleClear(context, it, "Nova Vault Backup", 60, scope)
+                                    SecureClipboard.copyAndScheduleClear(context, it, "Elvarix Backup", 60, scope)
                                 }
                             },
                         )

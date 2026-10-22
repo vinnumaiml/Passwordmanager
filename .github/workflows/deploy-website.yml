@@ -1,4 +1,4 @@
-name: Deploy Nova Vault Website to GitHub Pages
+name: Deploy Elvarix Website to GitHub Pages
 
 on:
   push:

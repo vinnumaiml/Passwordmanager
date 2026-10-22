@@ -1,13 +1,13 @@
 <resources>
-    <string name="app_name">Nova Vault</string>
-    <string name="autofill_service_label">Nova Vault Autofill</string>
+    <string name="app_name">Elvarix</string>
+    <string name="autofill_service_label">Elvarix Autofill</string>
     <!-- Onboarding -->
-    <string name="onboarding_title_1">Zero-Knowledge Encryption</string>
-    <string name="onboarding_desc_1">Your vault is encrypted on-device before anything ever leaves your phone. We never see your passwords.</string>
-    <string name="onboarding_title_2">Autofill Everywhere</string>
-    <string name="onboarding_desc_2">Nova Vault integrates with Android\'s autofill system to securely fill credentials in any app or browser.</string>
-    <string name="onboarding_title_3">Biometric Security</string>
-    <string name="onboarding_desc_3">Unlock your vault instantly with fingerprint or face authentication, backed by hardware-protected keys.</string>
+    <string name="onboarding_title_1">Zero-Knowledge Sovereign Vault</string>
+    <string name="onboarding_desc_1">Your vault is encrypted on-device with Argon2id and AES-256-GCM before anything ever leaves your phone. We never see your secrets.</string>
+    <string name="onboarding_title_2">Seamless Autofill</string>
+    <string name="onboarding_desc_2">Elvarix integrates deeply with Android\'s autofill framework to securely fill credentials in any application or web browser.</string>
+    <string name="onboarding_title_3">Hardware Biometrics</string>
+    <string name="onboarding_desc_3">Unlock your vault in milliseconds with fingerprint or face recognition, guarded by Android Keystore hardware protection.</string>
     <!-- Auth -->
     <string name="sign_in">Sign In</string>
     <string name="sign_up">Create Account</string>
@@ -33,7 +33,7 @@
     <string name="error_invalid_credentials">Incorrect email or password.</string>
     <string name="error_unknown">Something went wrong. Please try again.</string>
     <!-- Master password notice -->
-    <string name="master_password_notice">Your Master Password is known only to you. It cannot be recovered by Nova Vault or anyone else. Losing it means permanent loss of your vault unless you have a Recovery Kit.</string>
+    <string name="master_password_notice">Your Master Password is known only to you. It cannot be recovered by Elvarix or anyone else. Losing it means permanent loss of your vault unless you have a Recovery Kit.</string>
     <!-- Recovery -->
-    <string name="recovery_kit_notice">Save your Recovery Kit somewhere safe and offline. It is the only way to regain access to your vault if you forget your Master Password. Nova Vault has no backdoor.</string>
+    <string name="recovery_kit_notice">Save your Recovery Kit somewhere safe and offline. It is the only way to regain access to your vault if you forget your Master Password. Elvarix has no backdoor.</string>
 </resources>
